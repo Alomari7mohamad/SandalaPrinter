@@ -33,7 +33,9 @@ export async function initializeUpdateService(): Promise<void> {
   if (initialized) return
   initialized = true
   try {
-    autoUpdater = (await import('electron-updater')).autoUpdater
+    const updaterPackage = (await import('electron-updater')).default
+    autoUpdater = updaterPackage.autoUpdater
+    if (!autoUpdater) throw new Error('electron-updater did not expose autoUpdater')
   } catch {
     publish({ state: 'error', message: 'تعذر تحميل خدمة تحديث التطبيق.' })
     return
