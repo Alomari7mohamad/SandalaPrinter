@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["electron.vite.config.ts", "drizzle.config.ts", "src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts"]
+}
