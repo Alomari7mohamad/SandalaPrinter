@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, Plus, Settings, Tags } from 'lucide-react'
+import { Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, Plus, Settings, Tags, UserRound } from 'lucide-react'
 import sandalaLogo from '../assets/sandala-logo.png'
 import sandalaIcon from '../assets/sandala-icon.png'
 
@@ -33,7 +33,7 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="sidebar-footer"><span className="status-dot" /> قاعدة البيانات متصلة</div>
+      <footer className="sidebar-footer"><div className="sidebar-manager"><UserRound size={20} /><div><span>مدير المطبعة</span><b>محمد وجيه عمري</b></div></div><div className="sidebar-database-status"><span className="status-dot" /> قاعدة البيانات متصلة</div></footer>
     </aside>
   )
 }
