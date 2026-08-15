@@ -204,6 +204,9 @@ export interface PrintOrderOptions {
   pageSize: PrintPageSize
   contentHeightMicrons?: number
 }
+export interface ClearSalesResult {
+  ordersDeleted: number
+}
 
 export interface DesktopApi {
   app: {
@@ -243,6 +246,9 @@ export interface DesktopApi {
   }
   printing: {
     printOrder: (options: PrintOrderOptions) => Promise<void>
+  }
+  maintenance: {
+    clearSalesData: (confirmation: 'DELETE_SALES') => Promise<ClearSalesResult>
   }
   updates: {
     getSettings: () => Promise<UpdateSettingsDto>

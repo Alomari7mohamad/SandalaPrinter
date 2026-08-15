@@ -9,6 +9,7 @@ import { orderService } from './services/order.service'
 import { inventoryService } from './services/inventory.service'
 import { reportsService } from './services/reports.service'
 import * as updateService from './services/update.service'
+import { clearSalesData } from './services/sales-maintenance.service'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('app:get-info', () => ({ version: app.getVersion(), databasePath: getDatabasePath() }))
@@ -54,6 +55,10 @@ export function registerIpcHandlers(): void {
       })
     })
   })
+  ipcMain.handle('maintenance:clear-sales-data', (_event, confirmation: string) => {
+    if (confirmation !== 'DELETE_SALES') throw new Error('تأكيد حذف بيانات المبيعات غير صالح.')
+    return clearSalesData()
+  })
   ipcMain.handle('updates:get-settings', () => updateService.getSettings())
   ipcMain.handle('updates:save-settings', (_event, settings: UpdateSettingsDto) => updateService.saveSettings(settings))
   ipcMain.handle('updates:get-status', () => updateService.getStatus())
@@ -85,6 +90,7 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('inventory:update-settings')
   ipcMain.removeHandler('reports:get')
   ipcMain.removeHandler('printing:print-order')
+  ipcMain.removeHandler('maintenance:clear-sales-data')
   ipcMain.removeHandler('updates:get-settings')
   ipcMain.removeHandler('updates:save-settings')
   ipcMain.removeHandler('updates:get-status')

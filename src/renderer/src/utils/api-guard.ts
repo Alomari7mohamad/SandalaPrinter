@@ -4,7 +4,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const hasFunction = (value: Record<string, unknown>, key: string): boolean => typeof value[key] === 'function'
 
 export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
-  if (!isRecord(value) || !isRecord(value.app) || !isRecord(value.dashboard) || !isRecord(value.catalog) || !isRecord(value.pricing) || !isRecord(value.orders) || !isRecord(value.inventory) || !isRecord(value.reports) || !isRecord(value.printing) || !isRecord(value.updates)) return false
+  if (!isRecord(value) || !isRecord(value.app) || !isRecord(value.dashboard) || !isRecord(value.catalog) || !isRecord(value.pricing) || !isRecord(value.orders) || !isRecord(value.inventory) || !isRecord(value.reports) || !isRecord(value.printing) || !isRecord(value.maintenance) || !isRecord(value.updates)) return false
   return hasFunction(value.app, 'getInfo') &&
     hasFunction(value.dashboard, 'getStats') &&
     hasFunction(value.catalog, 'listCategories') &&
@@ -27,6 +27,7 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.inventory, 'updateSettings') &&
     hasFunction(value.reports, 'get') &&
     hasFunction(value.printing, 'printOrder') &&
+    hasFunction(value.maintenance, 'clearSalesData') &&
     hasFunction(value.updates, 'getSettings') &&
     hasFunction(value.updates, 'saveSettings') &&
     hasFunction(value.updates, 'getStatus') &&

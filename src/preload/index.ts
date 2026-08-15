@@ -36,6 +36,9 @@ const api: DesktopApi = {
   printing: {
     printOrder: (options) => ipcRenderer.invoke('printing:print-order', options)
   },
+  maintenance: {
+    clearSalesData: (confirmation) => ipcRenderer.invoke('maintenance:clear-sales-data', confirmation)
+  },
   updates: {
     getSettings: () => ipcRenderer.invoke('updates:get-settings'),
     saveSettings: (settings) => ipcRenderer.invoke('updates:save-settings', settings),
