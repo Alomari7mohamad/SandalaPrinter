@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron'
-import type { UpdateSettingsDto, UpdateStatusDto } from '../../shared/contracts'
+import { DEFAULT_UPDATE_FEED_URL, type UpdateSettingsDto, type UpdateStatusDto } from '../../shared/contracts'
 import * as settingsRepository from '../database/update-settings.repository'
 
 let initialized = false
@@ -20,7 +20,7 @@ function configureFeed(feedUrl: string): void {
 }
 
 function validateSettings(input: UpdateSettingsDto): UpdateSettingsDto {
-  const feedUrl = input.feedUrl.trim().replace(/\/+$/, '')
+  const feedUrl = (input.feedUrl.trim() || DEFAULT_UPDATE_FEED_URL).replace(/\/+$/, '')
   if (feedUrl) {
     let parsed: URL
     try { parsed = new URL(feedUrl) } catch { throw new Error('رابط مصدر التحديث غير صالح.') }

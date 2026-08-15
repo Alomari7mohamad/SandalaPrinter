@@ -1,11 +1,11 @@
 import { CheckCircle2, Download, LoaderCircle, RefreshCw, Save, Settings, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { AppInfo, UpdateSettingsDto, UpdateStatusDto } from '../../../shared/contracts'
+import { DEFAULT_UPDATE_FEED_URL, type AppInfo, type UpdateSettingsDto, type UpdateStatusDto } from '../../../shared/contracts'
 import { PageHeader } from '../components/PageHeader'
 import { getArabicError } from '../utils/errors'
 import { formatNumber } from '../utils/format'
 
-const initialSettings: UpdateSettingsDto = { feedUrl: '', autoCheck: true }
+const initialSettings: UpdateSettingsDto = { feedUrl: DEFAULT_UPDATE_FEED_URL, autoCheck: true }
 
 export function SettingsPage() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)

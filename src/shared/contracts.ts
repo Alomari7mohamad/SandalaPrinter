@@ -17,6 +17,7 @@ export interface AppInfo {
 }
 
 export type UpdateState = 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'disabled' | 'error'
+export const DEFAULT_UPDATE_FEED_URL = 'https://alomari7mohamad.github.io/SandalaPrinter'
 export interface UpdateSettingsDto { feedUrl: string; autoCheck: boolean }
 export interface UpdateStatusDto {
   state: UpdateState

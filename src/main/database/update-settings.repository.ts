@@ -1,4 +1,4 @@
-import type { UpdateSettingsDto } from '../../shared/contracts'
+import { DEFAULT_UPDATE_FEED_URL, type UpdateSettingsDto } from '../../shared/contracts'
 import { getSqlite } from './client'
 
 const FEED_URL_KEY = 'updates.feedUrl'
@@ -8,7 +8,7 @@ export function getUpdateSettings(): UpdateSettingsDto {
   const database = getSqlite()
   const rows = database.prepare(`SELECT key, value FROM app_settings WHERE key IN (?, ?)`).all(FEED_URL_KEY, AUTO_CHECK_KEY) as Array<{ key: string; value: string }>
   const values = new Map(rows.map((row) => [row.key, row.value]))
-  return { feedUrl: values.get(FEED_URL_KEY) ?? '', autoCheck: values.get(AUTO_CHECK_KEY) !== 'false' }
+  return { feedUrl: values.get(FEED_URL_KEY)?.trim() || DEFAULT_UPDATE_FEED_URL, autoCheck: values.get(AUTO_CHECK_KEY) !== 'false' }
 }
 
 export function saveUpdateSettings(settings: UpdateSettingsDto): UpdateSettingsDto {
