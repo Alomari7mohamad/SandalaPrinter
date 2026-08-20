@@ -1,15 +1,16 @@
-import { app, ipcMain, type WebContentsPrintOptions } from 'electron'
+import { app, ipcMain, shell, type WebContentsPrintOptions } from 'electron'
 import { getDashboardStats } from './database/dashboard.repository'
 import { getDatabasePath } from './database/client'
 import { catalogService } from './services/catalog.service'
 import type { PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../shared/contracts'
-import type { CreateOrderInput, InventoryAdjustmentInput, InventorySettingsInput, OrderListQuery, ReportRangeInput } from '../shared/contracts'
+import type { CreateOrderInput, InventoryAdjustmentInput, InventoryItemInput, InventorySettingsInput, OrderListQuery, PurchaseRequestInput, ReportRangeInput, SupplierInput } from '../shared/contracts'
 import type { PrintOrderOptions, UpdateSettingsDto } from '../shared/contracts'
 import { orderService } from './services/order.service'
 import { inventoryService } from './services/inventory.service'
 import { reportsService } from './services/reports.service'
 import * as updateService from './services/update.service'
 import { clearSalesData } from './services/sales-maintenance.service'
+import { shortagesService } from './services/shortages.service'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('app:get-info', () => ({ version: app.getVersion(), databasePath: getDatabasePath() }))
@@ -32,6 +33,17 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('inventory:list', () => inventoryService.list())
   ipcMain.handle('inventory:adjust', (_event, input: InventoryAdjustmentInput) => inventoryService.adjust(input))
   ipcMain.handle('inventory:update-settings', (_event, input: InventorySettingsInput) => inventoryService.updateSettings(input))
+  ipcMain.handle('inventory:create-item', (_event, input: InventoryItemInput) => inventoryService.createItem(input))
+  ipcMain.handle('shortages:list-suppliers', () => shortagesService.listSuppliers())
+  ipcMain.handle('shortages:save-supplier', (_event, input: SupplierInput) => shortagesService.saveSupplier(input))
+  ipcMain.handle('shortages:list-requests', () => shortagesService.listRequests())
+  ipcMain.handle('shortages:save-request', (_event, input: PurchaseRequestInput) => shortagesService.saveRequest(input))
+  ipcMain.handle('shortages:delete-request', (_event, id: string) => shortagesService.deleteRequest(id))
+  ipcMain.handle('shortages:open-whatsapp', async (_event, supplierId: string, message: string) => {
+    const supplier=shortagesService.getSupplier(supplierId); if(!supplier) throw new Error('التاجر غير موجود.')
+    if(typeof message !== 'string' || message.length > 4000) throw new Error('رسالة واتساب غير صالحة.')
+    const phone=supplier.whatsappPhone.replace(/\D/g,''); await shell.openExternal(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`)
+  })
   ipcMain.handle('reports:get', (_event, range: ReportRangeInput) => reportsService.get(range))
   ipcMain.handle('printing:print-order', (event, input: PrintOrderOptions) => {
     if (!input || !['THERMAL', 'A4', 'A5'].includes(input.pageSize)) {
@@ -88,6 +100,13 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('inventory:list')
   ipcMain.removeHandler('inventory:adjust')
   ipcMain.removeHandler('inventory:update-settings')
+  ipcMain.removeHandler('inventory:create-item')
+  ipcMain.removeHandler('shortages:list-suppliers')
+  ipcMain.removeHandler('shortages:save-supplier')
+  ipcMain.removeHandler('shortages:list-requests')
+  ipcMain.removeHandler('shortages:save-request')
+  ipcMain.removeHandler('shortages:delete-request')
+  ipcMain.removeHandler('shortages:open-whatsapp')
   ipcMain.removeHandler('reports:get')
   ipcMain.removeHandler('printing:print-order')
   ipcMain.removeHandler('maintenance:clear-sales-data')

@@ -150,6 +150,10 @@ export interface InventoryItemDto {
   quantity: number
   lowStockThreshold: number
   purchaseCost: number
+  supplierId: string | null
+  supplierName: string | null
+  reorderPoint: number
+  minimumOrderQuantity: number
   active: boolean
   updatedAt: string
 }
@@ -159,7 +163,13 @@ export interface InventoryAdjustmentInput {
   quantity: number
   notes: string | null
 }
-export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number }
+export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; reorderPoint: number; minimumOrderQuantity: number }
+export interface InventoryItemInput { name: string; sku: string | null; unit: string; quantity: number; purchaseCost: number; supplierId: string; reorderPoint: number; minimumOrderQuantity: number }
+
+export interface SupplierDto { id: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null; active: boolean; productCount: number }
+export interface SupplierInput { id?: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null }
+export interface PurchaseRequestDto { id: string; inventoryItemId: string; itemName: string; sku: string | null; unit: string; currentQuantity: number; supplierId: string; supplierName: string; companyName: string; whatsappPhone: string; requestedQuantity: number; unitPrice: number; totalPrice: number; source: 'AUTO' | 'MANUAL' }
+export interface PurchaseRequestInput { inventoryItemId: string; requestedQuantity: number; unitPrice: number }
 
 export interface ReportRangeInput { from: string; to: string }
 export interface ReportSummaryDto {
@@ -240,6 +250,15 @@ export interface DesktopApi {
     list: () => Promise<InventoryItemDto[]>
     adjust: (input: InventoryAdjustmentInput) => Promise<InventoryItemDto>
     updateSettings: (input: InventorySettingsInput) => Promise<InventoryItemDto>
+    createItem: (input: InventoryItemInput) => Promise<InventoryItemDto>
+  }
+  shortages: {
+    listSuppliers: () => Promise<SupplierDto[]>
+    saveSupplier: (input: SupplierInput) => Promise<SupplierDto>
+    listRequests: () => Promise<PurchaseRequestDto[]>
+    saveRequest: (input: PurchaseRequestInput) => Promise<PurchaseRequestDto>
+    deleteRequest: (id: string) => Promise<void>
+    openWhatsApp: (supplierId: string, message: string) => Promise<void>
   }
   reports: {
     get: (range: ReportRangeInput) => Promise<BusinessReportDto>

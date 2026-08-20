@@ -9,6 +9,7 @@ import { OrdersPage } from './pages/OrdersPage'
 import { InventoryPage } from './pages/InventoryPage'
 import { ProfitsPage } from './pages/ProfitsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { ShortagesPage } from './pages/ShortagesPage'
 
 export function App() {
   const navigate = useNavigate()
@@ -39,6 +40,7 @@ export function App() {
         <Route path="services" element={<ServicesPage />} />
         <Route path="pricing" element={<PricingPage />} />
         <Route path="inventory" element={<InventoryPage />} />
+        <Route path="shortages" element={<ShortagesPage />} />
         <Route path="profits" element={<ProfitsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

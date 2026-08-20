@@ -28,7 +28,16 @@ const api: DesktopApi = {
   inventory: {
     list: () => ipcRenderer.invoke('inventory:list'),
     adjust: (input) => ipcRenderer.invoke('inventory:adjust', input),
-    updateSettings: (input) => ipcRenderer.invoke('inventory:update-settings', input)
+    updateSettings: (input) => ipcRenderer.invoke('inventory:update-settings', input),
+    createItem: (input) => ipcRenderer.invoke('inventory:create-item', input)
+  },
+  shortages: {
+    listSuppliers: () => ipcRenderer.invoke('shortages:list-suppliers'),
+    saveSupplier: (input) => ipcRenderer.invoke('shortages:save-supplier', input),
+    listRequests: () => ipcRenderer.invoke('shortages:list-requests'),
+    saveRequest: (input) => ipcRenderer.invoke('shortages:save-request', input),
+    deleteRequest: (id) => ipcRenderer.invoke('shortages:delete-request', id),
+    openWhatsApp: (supplierId, message) => ipcRenderer.invoke('shortages:open-whatsapp', supplierId, message)
   },
   reports: {
     get: (range) => ipcRenderer.invoke('reports:get', range)

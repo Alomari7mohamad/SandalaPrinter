@@ -12,6 +12,7 @@ import orderPaidAtMigration from './migrations/0004_order_paid_at.sql?raw'
 import orderBusinessLogoMigration from './migrations/0005_order_business_logo.sql?raw'
 import bilingualServiceNamesMigration from './migrations/0006_bilingual_service_names.sql?raw'
 import unitCostOnlyMigration from './migrations/0007_unit_cost_only.sql?raw'
+import suppliersShortagesMigration from './migrations/0008_suppliers_shortages.sql?raw'
 import { seedCorePricingData } from './seed'
 import { seedInventoryItems } from './inventory.seed'
 
@@ -51,6 +52,9 @@ export function initializeDatabase() {
   }
   if (schemaVersion < 8) {
     sqlite.transaction(() => sqlite?.exec(unitCostOnlyMigration))()
+  }
+  if (schemaVersion < 9) {
+    sqlite.transaction(() => sqlite?.exec(suppliersShortagesMigration))()
   }
   seedCorePricingData(sqlite)
   seedInventoryItems(sqlite)

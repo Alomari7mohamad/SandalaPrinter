@@ -150,6 +150,16 @@ export const expenses = sqliteTable('expenses', {
   ...timestamps
 })
 
+export const suppliers = sqliteTable('suppliers', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  companyName: text('company_name').notNull(),
+  whatsappPhone: text('whatsapp_phone').notNull(),
+  productTypes: text('product_types'),
+  active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  ...timestamps
+})
+
 export const inventoryItems = sqliteTable('inventory_items', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -158,6 +168,9 @@ export const inventoryItems = sqliteTable('inventory_items', {
   quantity: real('quantity').notNull().default(0),
   lowStockThreshold: real('low_stock_threshold').notNull().default(0),
   purchaseCost: real('purchase_cost').notNull().default(0),
+  supplierId: text('supplier_id').references(() => suppliers.id),
+  reorderPoint: real('reorder_point').notNull().default(1),
+  minimumOrderQuantity: real('minimum_order_quantity').notNull().default(1),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
   ...timestamps
 }, (table) => [uniqueIndex('inventory_sku_unique').on(table.sku)])
@@ -171,6 +184,16 @@ export const inventoryTransactions = sqliteTable('inventory_transactions', {
   referenceId: text('reference_id'),
   notes: text('notes'),
   occurredAt: text('occurred_at').notNull(),
+  ...timestamps
+})
+
+export const purchaseRequests = sqliteTable('purchase_requests', {
+  id: text('id').primaryKey(),
+  inventoryItemId: text('inventory_item_id').notNull().unique().references(() => inventoryItems.id),
+  supplierId: text('supplier_id').notNull().references(() => suppliers.id),
+  requestedQuantity: real('requested_quantity').notNull(),
+  unitPrice: real('unit_price').notNull().default(0),
+  source: text('source').notNull().default('AUTO'),
   ...timestamps
 })
 

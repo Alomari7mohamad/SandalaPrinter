@@ -1,13 +1,13 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, Plus, Settings, Tags, UserRound } from 'lucide-react'
+import { Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, Plus, Settings, ShoppingBasket, Tags, UserRound } from 'lucide-react'
 import sandalaLogo from '../assets/sandala-logo.png'
 import sandalaIcon from '../assets/sandala-icon.png'
 
 const items = [
   ['/', 'الرئيسية', House], ['/orders', 'الطلبات', ClipboardList],
   ['/services', 'الخدمات والمنتجات', PackageOpen], ['/pricing', 'الأسعار', Tags],
-  ['/inventory', 'المخزون', Boxes], ['/profits', 'الأرباح', ChartNoAxesCombined],
+  ['/inventory', 'المخزون', Boxes], ['/shortages', 'النواقص والطلبيات', ShoppingBasket], ['/profits', 'الأرباح', ChartNoAxesCombined],
   ['/settings', 'الإعدادات', Settings],
 ] as const
 
