@@ -268,6 +268,7 @@ export interface DesktopApi {
     adjust: (input: InventoryAdjustmentInput) => Promise<InventoryItemDto>
     updateSettings: (input: InventorySettingsInput) => Promise<InventoryItemDto>
     createItem: (input: InventoryItemInput) => Promise<InventoryItemDto>
+    deleteItem: (id: string) => Promise<void>
   }
   shortages: {
     listSuppliers: () => Promise<SupplierDto[]>

@@ -29,7 +29,8 @@ const api: DesktopApi = {
     list: () => ipcRenderer.invoke('inventory:list'),
     adjust: (input) => ipcRenderer.invoke('inventory:adjust', input),
     updateSettings: (input) => ipcRenderer.invoke('inventory:update-settings', input),
-    createItem: (input) => ipcRenderer.invoke('inventory:create-item', input)
+    createItem: (input) => ipcRenderer.invoke('inventory:create-item', input),
+    deleteItem: (id) => ipcRenderer.invoke('inventory:delete-item', id)
   },
   shortages: {
     listSuppliers: () => ipcRenderer.invoke('shortages:list-suppliers'),

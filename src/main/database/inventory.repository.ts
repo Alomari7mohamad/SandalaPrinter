@@ -61,3 +61,17 @@ export function createInventoryItem(input: InventoryItemInput): InventoryItemDto
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`).run(id, input.name, input.sku, input.unit, input.quantity, input.reorderPoint, input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount)
   return getInventoryItem(id)!
 }
+
+export function deleteInventoryItem(id: string): void {
+  const database = getSqlite()
+  database.transaction(() => {
+    const item = database.prepare('SELECT id FROM inventory_items WHERE id=? AND active=1').get(id)
+    if (!item) throw new Error('منتج المخزون المطلوب غير موجود.')
+
+    database.prepare('DELETE FROM purchase_requests WHERE inventory_item_id=?').run(id)
+    const result = database.prepare(`UPDATE inventory_items
+      SET active=0, catalog_service_id=NULL, supplier_id=NULL, updated_at=CURRENT_TIMESTAMP
+      WHERE id=? AND active=1`).run(id)
+    if (result.changes === 0) throw new Error('تعذر حذف منتج المخزون.')
+  })()
+}
