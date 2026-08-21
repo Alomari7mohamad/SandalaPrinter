@@ -37,9 +37,13 @@ export function adjustInventory(input: InventoryAdjustmentInput): InventoryItemD
 }
 
 export function updateInventorySettings(input: InventorySettingsInput): InventoryItemDto {
-  const result = getSqlite().prepare(`UPDATE inventory_items SET low_stock_threshold=?, purchase_cost=?, supplier_id=?, reorder_point=?, minimum_order_quantity=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1`)
+  const database = getSqlite()
+  const result = database.prepare(`UPDATE inventory_items SET low_stock_threshold=?, purchase_cost=?, supplier_id=?, reorder_point=?, minimum_order_quantity=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1`)
     .run(input.lowStockThreshold, input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.itemId)
   if (result.changes === 0) throw new Error('عنصر المخزون غير موجود.')
+  database.prepare(`UPDATE services SET unit_cost=?, supplier_id=?, reorder_point=?, minimum_order_quantity=?, updated_at=CURRENT_TIMESTAMP
+    WHERE id=(SELECT catalog_service_id FROM inventory_items WHERE id=?)`)
+    .run(input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.itemId)
   const saved = getInventoryItem(input.itemId)
   if (!saved) throw new Error('تعذر حفظ إعدادات المخزون.')
   return saved
