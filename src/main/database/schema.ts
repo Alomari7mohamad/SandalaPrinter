@@ -25,6 +25,10 @@ export const services = sqliteTable('services', {
   colorMode: text('color_mode'),
   coverage: text('coverage'),
   unit: text('unit').notNull(),
+  itemType: text('item_type').notNull().default('SERVICE'),
+  supplierId: text('supplier_id'),
+  reorderPoint: real('reorder_point').notNull().default(1),
+  minimumOrderQuantity: real('minimum_order_quantity').notNull().default(1),
   costType: text('cost_type').notNull().default('PER_UNIT'),
   unitCost: real('unit_cost'),
   costBatchSize: real('cost_batch_size'),
@@ -171,6 +175,7 @@ export const inventoryItems = sqliteTable('inventory_items', {
   supplierId: text('supplier_id').references(() => suppliers.id),
   reorderPoint: real('reorder_point').notNull().default(1),
   minimumOrderQuantity: real('minimum_order_quantity').notNull().default(1),
+  catalogServiceId: text('catalog_service_id').references(() => services.id),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
   ...timestamps
 }, (table) => [uniqueIndex('inventory_sku_unique').on(table.sku)])

@@ -8,7 +8,8 @@ export function listInventoryItems(): InventoryItemDto[] {
   const rows = getSqlite().prepare(`
     SELECT i.id, i.name, i.sku, i.unit, i.quantity, i.low_stock_threshold lowStockThreshold,
       i.purchase_cost purchaseCost, i.supplier_id supplierId, s.company_name supplierName,
-      i.reorder_point reorderPoint, i.minimum_order_quantity minimumOrderQuantity, i.active, i.updated_at updatedAt
+      i.reorder_point reorderPoint, i.minimum_order_quantity minimumOrderQuantity,
+      i.catalog_service_id catalogServiceId, i.active, i.updated_at updatedAt
     FROM inventory_items i LEFT JOIN suppliers s ON s.id=i.supplier_id WHERE i.active = 1 ORDER BY i.name
   `).all() as InventoryRow[]
   return rows.map((row) => ({ ...row, active: Boolean(row.active) }))

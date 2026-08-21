@@ -60,7 +60,7 @@ export function ServicesPage() {
   }
 
   return <div className="page">
-    <PageHeader title="الخدمات والمنتجات" subtitle={`${services.length} خدمة محفوظة في قاعدة البيانات`} action={<div className="page-header-actions"><button className="secondary-button" onClick={() => setAddingCategory(true)}><FolderPlus size={18} /> تصنيف جديد</button><button className="primary-button" onClick={() => setEditing('new')}><Plus size={18} /> خدمة جديدة</button></div>} />
+    <PageHeader title="الخدمات والمنتجات" subtitle={`${services.length} عنصر محفوظ في قاعدة البيانات`} action={<div className="page-header-actions"><button className="secondary-button" onClick={() => setAddingCategory(true)}><FolderPlus size={18} /> تصنيف جديد</button><button className="primary-button" onClick={() => setEditing('new')}><Plus size={18} /> إضافة خدمة أو منتج</button></div>} />
     {error && <div className="alert error">{error}</div>}
     <section className="panel catalog-panel">
       <div className="filters-bar"><div className="search-field"><Search size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث بالاسم، A4، خرومو، ملون..." /></div><select value={category} onChange={(e) => setCategory(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.nameAr}</option>)}</select><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">كل الحالات</option><option value="true">نشط</option><option value="false">غير نشط</option></select></div>

@@ -42,6 +42,11 @@ export interface ServiceDto {
   colorMode: string | null
   coverage: string | null
   unit: string
+  itemType: 'SERVICE' | 'PRODUCT'
+  supplierId: string | null
+  supplierName: string | null
+  reorderPoint: number
+  minimumOrderQuantity: number
   costType: CostType
   unitCost: number | null
   costBatchSize: number | null
@@ -63,6 +68,10 @@ export interface ServiceInput {
   colorMode: string | null
   coverage: string | null
   unit: string
+  itemType: 'SERVICE' | 'PRODUCT'
+  supplierId: string | null
+  reorderPoint: number
+  minimumOrderQuantity: number
   costType: CostType
   unitCost: number | null
   costBatchSize: number | null
@@ -154,6 +163,7 @@ export interface InventoryItemDto {
   supplierName: string | null
   reorderPoint: number
   minimumOrderQuantity: number
+  catalogServiceId: string | null
   active: boolean
   updatedAt: string
 }

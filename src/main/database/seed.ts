@@ -8,8 +8,8 @@ export function seedCorePricingData(database: Database.Database): void {
   const insertCategory = database.prepare(`INSERT OR IGNORE INTO service_categories (id, code, name_ar, active, sort_order) VALUES (?, ?, ?, 1, ?)`)
   const insertService = database.prepare(`
     INSERT OR IGNORE INTO services
-    (id, category_id, code, name_ar, material_type, size, color_mode, coverage, unit, cost_type, unit_cost, cost_batch_size, cost_calculation, sale_calculation, active, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COST_STRATEGY', 'PRICING_RULE', ?, ?)
+    (id, category_id, code, name_ar, material_type, size, color_mode, coverage, unit, item_type, cost_type, unit_cost, cost_batch_size, cost_calculation, sale_calculation, active, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COST_STRATEGY', 'PRICING_RULE', ?, ?)
   `)
   const insertRule = database.prepare(`
     INSERT OR IGNORE INTO pricing_rules
@@ -21,7 +21,7 @@ export function seedCorePricingData(database: Database.Database): void {
   database.transaction(() => {
     for (const category of coreCategories) insertCategory.run(category.id, category.code, category.nameAr, category.sortOrder)
     for (const service of coreServices) {
-      insertService.run(service.id, service.categoryId, service.code, service.nameAr, service.paperType, service.size, service.colorMode, service.coverage, service.unit, service.costType, service.unitCost, service.costBatchSize, service.active ? 1 : 0, service.notes)
+      insertService.run(service.id, service.categoryId, service.code, service.nameAr, service.paperType, service.size, service.colorMode, service.coverage, service.unit, service.id.startsWith('product-') ? 'PRODUCT' : 'SERVICE', service.costType, service.unitCost, service.costBatchSize, service.active ? 1 : 0, service.notes)
     }
     for (const rule of corePricingRules) {
       insertRule.run(rule.id, rule.serviceId, rule.ruleType, rule.minQuantity, rule.maxQuantity, rule.exactQuantity, rule.fixedPrice, rule.unitPrice, rule.priority, rule.active ? 1 : 0)

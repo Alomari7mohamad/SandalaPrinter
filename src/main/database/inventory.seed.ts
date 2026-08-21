@@ -34,5 +34,14 @@ export function seedInventoryItems(database: Database.Database): void {
       }
       saveCostVersion.run()
     }
+    const links = [
+      ['inv-black-binders', 'product-black-binder'], ['inv-nylon-folders', 'product-nylon-folder'],
+      ['inv-nylon-bags', 'product-nylon-bag'], ['inv-staples-large', 'product-large-staples'],
+      ['inv-staples-small', 'product-small-staples'], ['inv-red-glue', 'product-red-glue']
+    ] as const
+    const link = database.prepare('UPDATE inventory_items SET catalog_service_id=? WHERE id=? AND catalog_service_id IS NULL AND EXISTS (SELECT 1 FROM services WHERE id=?)')
+    for (const [inventoryId, serviceId] of links) link.run(serviceId, inventoryId, serviceId)
+    database.prepare(`INSERT OR IGNORE INTO inventory_items (id, sku, name, unit, quantity, low_stock_threshold, purchase_cost, reorder_point, minimum_order_quantity, catalog_service_id, active)
+      SELECT 'inv-catalog-product-bag-folder', code, name_ar, unit, 0, 1, COALESCE(unit_cost, 0), 1, 1, id, 1 FROM services WHERE id='product-bag-folder'`).run()
   })()
 }

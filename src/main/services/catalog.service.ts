@@ -11,7 +11,11 @@ const serviceSchema = z.object({
   id: z.string().uuid().or(z.string().min(2)).optional(), code: z.string().trim().min(2).max(80).regex(/^[A-Z0-9_-]+$/),
   nameAr: z.string().trim().min(2).max(150), nameHe: z.string().trim().max(150).nullable(), categoryId: z.string().min(2), paperType: nullableText, size: nullableText,
   colorMode: nullableText, coverage: nullableText, unit: z.string().trim().min(1).max(40), costType: z.enum(costTypes),
+  itemType: z.enum(['SERVICE', 'PRODUCT']), supplierId: z.string().min(2).nullable(),
+  reorderPoint: z.number().nonnegative().finite(), minimumOrderQuantity: z.number().positive().finite(),
   unitCost: z.number().nonnegative().nullable(), costBatchSize: z.number().positive().nullable(), active: z.boolean(), notes: z.string().trim().max(1000).nullable()
+}).superRefine((value, context) => {
+  if (!value.id && value.itemType === 'PRODUCT' && !value.supplierId) context.addIssue({ code: 'custom', message: 'يجب اختيار التاجر للمنتج.' })
 })
 const ruleSchema = z.object({
   id: z.string().optional(), serviceId: z.string().min(2), ruleType: z.enum(pricingRuleTypes),
