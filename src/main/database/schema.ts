@@ -176,6 +176,12 @@ export const inventoryItems = sqliteTable('inventory_items', {
   reorderPoint: real('reorder_point').notNull().default(1),
   minimumOrderQuantity: real('minimum_order_quantity').notNull().default(1),
   catalogServiceId: text('catalog_service_id').references(() => services.id),
+  packageEnabled: integer('package_enabled', { mode: 'boolean' }).notNull().default(false),
+  packageName: text('package_name'),
+  unitsPerPackage: real('units_per_package'),
+  packagePrice: real('package_price'),
+  packageNotes: text('package_notes'),
+  reorderPackageCount: real('reorder_package_count'),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
   ...timestamps
 }, (table) => [uniqueIndex('inventory_sku_unique').on(table.sku)])

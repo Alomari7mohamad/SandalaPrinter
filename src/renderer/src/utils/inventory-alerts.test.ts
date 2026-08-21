@@ -6,6 +6,8 @@ const item = (id: string, quantity: number, lowStockThreshold: number): Inventor
   id, name: id, sku: id, unit: 'قطعة', quantity, lowStockThreshold, purchaseCost: 0,
   supplierId: null, supplierName: null, reorderPoint: 1, minimumOrderQuantity: 1,
   catalogServiceId: null,
+  packageEnabled: false, packageName: null, unitsPerPackage: null, packagePrice: null,
+  packageNotes: null, reorderPackageCount: null,
   active: true, updatedAt: ''
 })
 

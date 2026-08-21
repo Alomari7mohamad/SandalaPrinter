@@ -24,20 +24,23 @@ function syncAutomaticRequests(): void {
   const database = getSqlite()
   database.transaction(() => {
     database.prepare(`INSERT OR IGNORE INTO purchase_requests (id, inventory_item_id, supplier_id, requested_quantity, unit_price, source)
-      SELECT lower(hex(randomblob(16))), id, supplier_id, minimum_order_quantity, purchase_cost, 'AUTO'
+      SELECT lower(hex(randomblob(16))), id, supplier_id, minimum_order_quantity,
+        CASE WHEN package_enabled=1 THEN COALESCE(package_price,0) ELSE purchase_cost END, 'AUTO'
       FROM inventory_items WHERE active=1 AND supplier_id IS NOT NULL AND quantity <= reorder_point`).run()
     database.prepare(`DELETE FROM purchase_requests WHERE source='AUTO' AND inventory_item_id IN
       (SELECT id FROM inventory_items WHERE quantity > reorder_point OR active=0 OR supplier_id IS NULL)`).run()
     database.prepare(`UPDATE purchase_requests SET supplier_id=(SELECT supplier_id FROM inventory_items WHERE id=inventory_item_id),
       requested_quantity=CASE WHEN source='AUTO' THEN (SELECT minimum_order_quantity FROM inventory_items WHERE id=inventory_item_id) ELSE requested_quantity END,
-      unit_price=CASE WHEN source='AUTO' THEN (SELECT purchase_cost FROM inventory_items WHERE id=inventory_item_id) ELSE unit_price END,
+      unit_price=(SELECT CASE WHEN package_enabled=1 THEN COALESCE(package_price,0) ELSE purchase_cost END FROM inventory_items WHERE id=inventory_item_id),
       updated_at=CURRENT_TIMESTAMP`).run()
   })()
 }
 
 export function listRequests(): PurchaseRequestDto[] {
   syncAutomaticRequests()
-  return getSqlite().prepare(`SELECT r.id, r.inventory_item_id inventoryItemId, i.name itemName, i.sku, i.unit, i.quantity currentQuantity,
+  return getSqlite().prepare(`SELECT r.id, r.inventory_item_id inventoryItemId, i.name itemName, i.sku,
+    CASE WHEN i.package_enabled=1 THEN COALESCE(i.package_name,'رزمة') ELSE i.unit END unit,
+    i.unit stockUnit, i.quantity currentQuantity, i.units_per_package unitsPerPackage,
     r.supplier_id supplierId, s.name supplierName, s.company_name companyName, s.whatsapp_phone whatsappPhone,
     r.requested_quantity requestedQuantity, r.unit_price unitPrice, r.requested_quantity*r.unit_price totalPrice, r.source
     FROM purchase_requests r JOIN inventory_items i ON i.id=r.inventory_item_id JOIN suppliers s ON s.id=r.supplier_id
@@ -46,12 +49,12 @@ export function listRequests(): PurchaseRequestDto[] {
 
 export function saveRequest(input: PurchaseRequestInput): PurchaseRequestDto {
   const database = getSqlite()
-  const item = database.prepare(`SELECT supplier_id supplierId FROM inventory_items WHERE id=? AND active=1`).get(input.inventoryItemId) as { supplierId: string | null } | undefined
+  const item = database.prepare(`SELECT supplier_id supplierId, CASE WHEN package_enabled=1 THEN COALESCE(package_price,0) ELSE purchase_cost END orderPrice FROM inventory_items WHERE id=? AND active=1`).get(input.inventoryItemId) as { supplierId: string | null; orderPrice: number } | undefined
   if (!item) throw new Error('منتج المخزون غير موجود.')
   if (!item.supplierId) throw new Error('حدد التاجر لهذا المنتج أولًا من صفحة المخزون.')
   database.prepare(`INSERT INTO purchase_requests (id, inventory_item_id, supplier_id, requested_quantity, unit_price, source) VALUES (?, ?, ?, ?, ?, 'MANUAL')
     ON CONFLICT(inventory_item_id) DO UPDATE SET supplier_id=excluded.supplier_id, requested_quantity=excluded.requested_quantity, unit_price=excluded.unit_price, source='MANUAL', updated_at=CURRENT_TIMESTAMP`)
-    .run(randomUUID(), input.inventoryItemId, item.supplierId, input.requestedQuantity, input.unitPrice)
+    .run(randomUUID(), input.inventoryItemId, item.supplierId, input.requestedQuantity, item.orderPrice)
   return listRequests().find((request) => request.inventoryItemId === input.inventoryItemId)!
 }
 

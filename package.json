@@ -1,6 +1,6 @@
 {
   "name": "sandala-printer",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "description": "تطبيق سطح مكتب محلي لإدارة المطبعة",
   "main": "out/main/index.js",
   "author": "Sandala Printer",

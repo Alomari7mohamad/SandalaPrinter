@@ -164,6 +164,12 @@ export interface InventoryItemDto {
   reorderPoint: number
   minimumOrderQuantity: number
   catalogServiceId: string | null
+  packageEnabled: boolean
+  packageName: string | null
+  unitsPerPackage: number | null
+  packagePrice: number | null
+  packageNotes: string | null
+  reorderPackageCount: number | null
   active: boolean
   updatedAt: string
 }
@@ -171,14 +177,15 @@ export interface InventoryAdjustmentInput {
   itemId: string
   type: 'ADD' | 'REMOVE'
   quantity: number
+  quantityMode?: 'UNIT' | 'PACKAGE'
   notes: string | null
 }
-export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; reorderPoint: number; minimumOrderQuantity: number }
-export interface InventoryItemInput { name: string; sku: string | null; unit: string; quantity: number; purchaseCost: number; supplierId: string; reorderPoint: number; minimumOrderQuantity: number }
+export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
+export interface InventoryItemInput { name: string; sku: string | null; unit: string; quantity: number; purchaseCost: number; supplierId: string; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
 
 export interface SupplierDto { id: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null; active: boolean; productCount: number }
 export interface SupplierInput { id?: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null }
-export interface PurchaseRequestDto { id: string; inventoryItemId: string; itemName: string; sku: string | null; unit: string; currentQuantity: number; supplierId: string; supplierName: string; companyName: string; whatsappPhone: string; requestedQuantity: number; unitPrice: number; totalPrice: number; source: 'AUTO' | 'MANUAL' }
+export interface PurchaseRequestDto { id: string; inventoryItemId: string; itemName: string; sku: string | null; unit: string; stockUnit: string; currentQuantity: number; unitsPerPackage: number | null; supplierId: string; supplierName: string; companyName: string; whatsappPhone: string; requestedQuantity: number; unitPrice: number; totalPrice: number; source: 'AUTO' | 'MANUAL' }
 export interface PurchaseRequestInput { inventoryItemId: string; requestedQuantity: number; unitPrice: number }
 
 export interface ReportRangeInput { from: string; to: string }
