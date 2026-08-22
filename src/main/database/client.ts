@@ -17,6 +17,7 @@ import catalogInventoryProductsMigration from './migrations/0009_catalog_invento
 import inventoryPackagesMigration from './migrations/0010_inventory_packages.sql?raw'
 import { seedCorePricingData } from './seed'
 import { seedInventoryItems } from './inventory.seed'
+import { seedGhassanProducts } from './ghassan-products.seed'
 
 let sqlite: Database.Database | undefined
 
@@ -66,6 +67,7 @@ export function initializeDatabase() {
   }
   seedCorePricingData(sqlite)
   seedInventoryItems(sqlite)
+  seedGhassanProducts(sqlite)
   return drizzle(sqlite, { schema })
 }
 

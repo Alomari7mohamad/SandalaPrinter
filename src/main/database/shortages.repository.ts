@@ -44,6 +44,7 @@ export function listRequests(): PurchaseRequestDto[] {
     r.supplier_id supplierId, s.name supplierName, s.company_name companyName, s.whatsapp_phone whatsappPhone,
     r.requested_quantity requestedQuantity, r.unit_price unitPrice, r.requested_quantity*r.unit_price totalPrice, r.source
     FROM purchase_requests r JOIN inventory_items i ON i.id=r.inventory_item_id JOIN suppliers s ON s.id=r.supplier_id
+    WHERE i.active=1
     ORDER BY s.company_name, i.name`).all() as PurchaseRequestDto[]
 }
 

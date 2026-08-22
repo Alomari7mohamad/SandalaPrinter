@@ -34,6 +34,7 @@ export function listServices(): ServiceDto[] {
     FROM services s LEFT JOIN service_categories c ON c.id = s.category_id
     LEFT JOIN suppliers sup ON sup.id = s.supplier_id
     LEFT JOIN pricing_rules pr ON pr.service_id = s.id
+    WHERE s.code NOT LIKE 'ARCHIVED-%'
     GROUP BY s.id ORDER BY c.sort_order, s.name_ar
   `).all() as ServiceRow[]
   return rows.map((row) => ({ ...row, active: Boolean(row.active) }))
