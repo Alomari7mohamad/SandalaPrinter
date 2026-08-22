@@ -15,9 +15,11 @@ import unitCostOnlyMigration from './migrations/0007_unit_cost_only.sql?raw'
 import suppliersShortagesMigration from './migrations/0008_suppliers_shortages.sql?raw'
 import catalogInventoryProductsMigration from './migrations/0009_catalog_inventory_products.sql?raw'
 import inventoryPackagesMigration from './migrations/0010_inventory_packages.sql?raw'
+import inventoryCategoriesMigration from './migrations/0011_inventory_categories.sql?raw'
 import { seedCorePricingData } from './seed'
 import { seedInventoryItems } from './inventory.seed'
 import { seedGhassanProducts } from './ghassan-products.seed'
+import { seedPrintingInventory } from './printing-inventory.seed'
 
 let sqlite: Database.Database | undefined
 
@@ -65,9 +67,13 @@ export function initializeDatabase() {
   if (schemaVersion < 11) {
     sqlite.transaction(() => sqlite?.exec(inventoryPackagesMigration))()
   }
+  if (schemaVersion < 12) {
+    sqlite.transaction(() => sqlite?.exec(inventoryCategoriesMigration))()
+  }
   seedCorePricingData(sqlite)
   seedInventoryItems(sqlite)
   seedGhassanProducts(sqlite)
+  seedPrintingInventory(sqlite)
   return drizzle(sqlite, { schema })
 }
 

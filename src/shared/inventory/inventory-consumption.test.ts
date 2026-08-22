@@ -2,19 +2,29 @@ import { describe, expect, it } from 'vitest'
 import { calculateInventoryConsumption, type InventoryConsumptionSource } from './inventory-consumption'
 
 const source = (input: Partial<InventoryConsumptionSource> & Pick<InventoryConsumptionSource, 'serviceId' | 'quantity'>): InventoryConsumptionSource => ({
-  categoryId: null, size: null, coverage: null, ...input
+  categoryId: null, size: null, colorMode: null, coverage: null, ...input
 })
 
 describe('استهلاك المخزون عند تأكيد الطلب', () => {
   it('يخصم الورق والبروستول والخرومو حسب المقاس والكمية', () => {
     expect(calculateInventoryConsumption([
       source({ serviceId: 'paper-a4-bw', categoryId: 'cat-paper', size: 'A4', quantity: 50 }),
-      source({ serviceId: 'bristol-a3-color', categoryId: 'cat-bristol', size: 'A3', quantity: 12 }),
+      source({ serviceId: 'bristol-a3-color', categoryId: 'cat-bristol', size: 'A3', colorMode: 'ملون', quantity: 12 }),
       source({ serviceId: 'chromo-a4-bw', categoryId: 'cat-chromo', size: 'A4', quantity: 8 })
     ])).toEqual([
       { inventoryItemId: 'inv-paper-a4', quantity: 50 },
-      { inventoryItemId: 'inv-bristol-a3', quantity: 12 },
+      { inventoryItemId: 'inv-bristol-color-a3', quantity: 12 },
       { inventoryItemId: 'inv-chromo-a4', quantity: 8 }
+    ])
+  })
+
+  it('يفصل استهلاك البروستول العادي عن بروستول الطباعة الملون بالورقة', () => {
+    expect(calculateInventoryConsumption([
+      source({ serviceId: 'bristol-a4-bw', categoryId: 'cat-bristol', size: 'A4', colorMode: 'أبيض وأسود', quantity: 25 }),
+      source({ serviceId: 'bristol-a4-color', categoryId: 'cat-bristol', size: 'A4', colorMode: 'ملون', quantity: 40 })
+    ])).toEqual([
+      { inventoryItemId: 'inv-bristol-a4', quantity: 25 },
+      { inventoryItemId: 'inv-bristol-color-a4', quantity: 40 }
     ])
   })
 

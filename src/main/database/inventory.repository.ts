@@ -9,7 +9,8 @@ export function listInventoryItems(): InventoryItemDto[] {
     SELECT i.id, i.name, i.sku, i.unit, i.quantity, i.low_stock_threshold lowStockThreshold,
       i.purchase_cost purchaseCost, i.supplier_id supplierId, s.company_name supplierName,
       i.reorder_point reorderPoint, i.minimum_order_quantity minimumOrderQuantity,
-      i.catalog_service_id catalogServiceId, c.id categoryId, c.name_ar categoryName,
+      i.catalog_service_id catalogServiceId, COALESCE(ic.id, c.id) categoryId,
+      COALESCE(ic.name_ar, c.name_ar) categoryName,
       i.package_enabled packageEnabled,
       i.package_name packageName, i.units_per_package unitsPerPackage, i.package_price packagePrice,
       i.package_notes packageNotes, i.reorder_package_count reorderPackageCount,
@@ -18,6 +19,7 @@ export function listInventoryItems(): InventoryItemDto[] {
     LEFT JOIN suppliers s ON s.id=i.supplier_id
     LEFT JOIN services cs ON cs.id=i.catalog_service_id
     LEFT JOIN service_categories c ON c.id=cs.category_id
+    LEFT JOIN service_categories ic ON ic.id=i.category_id
     WHERE i.active = 1 ORDER BY i.name
   `).all() as InventoryRow[]
   return rows.map((row) => ({ ...row, active: Boolean(row.active), packageEnabled: Boolean(row.packageEnabled) }))
@@ -62,8 +64,8 @@ export function updateInventorySettings(input: InventorySettingsInput): Inventor
 
 export function createInventoryItem(input: InventoryItemInput): InventoryItemDto {
   const id=randomUUID()
-  getSqlite().prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity, low_stock_threshold, purchase_cost, supplier_id, reorder_point, minimum_order_quantity, package_enabled, package_name, units_per_package, package_price, package_notes, reorder_package_count, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`).run(id, input.name, input.sku, input.unit, input.quantity, input.reorderPoint, input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount)
+  getSqlite().prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity, low_stock_threshold, purchase_cost, supplier_id, reorder_point, minimum_order_quantity, category_id, package_enabled, package_name, units_per_package, package_price, package_notes, reorder_package_count, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM service_categories WHERE name_ar='طباعة' AND active=1 LIMIT 1), ?, ?, ?, ?, ?, ?, 1)`).run(id, input.name, input.sku, input.unit, input.quantity, input.reorderPoint, input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount)
   return getInventoryItem(id)!
 }
 

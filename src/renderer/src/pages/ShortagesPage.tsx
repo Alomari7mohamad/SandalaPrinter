@@ -20,7 +20,7 @@ export function ShortagesPage() {
   useEffect(()=>{setAddCategoryId('');setAddItemId('');setAddSupplierId('')},[selectedSupplier])
   const visible=requests.filter(r=>!selectedSupplier||r.supplierId===selectedSupplier)
   const grouped=useMemo(()=>suppliers.map(s=>({supplier:s,items:visible.filter(r=>r.supplierId===s.id)})).filter(g=>!selectedSupplier||g.supplier.id===selectedSupplier),[suppliers,visible,selectedSupplier])
-  const storeProducts=inventory.filter(i=>i.catalogServiceId&&(!selectedSupplier||i.supplierId===selectedSupplier))
+  const storeProducts=inventory.filter(i=>!selectedSupplier||i.supplierId===selectedSupplier)
   const productCategories=useMemo(()=>{const categories=new Map<string,string>();for(const item of storeProducts)if(item.categoryId&&item.categoryName)categories.set(item.categoryId,item.categoryName);return [...categories].sort((a,b)=>a[1].localeCompare(b[1],'ar'))},[storeProducts])
   const hasUncategorizedProducts=storeProducts.some(item=>!item.categoryId)
   const categoryProducts=storeProducts.filter(item=>addCategoryId==='uncategorized'?!item.categoryId:item.categoryId===addCategoryId)

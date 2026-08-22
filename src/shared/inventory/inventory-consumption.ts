@@ -4,6 +4,7 @@ export interface InventoryConsumptionSource {
   serviceId: string
   categoryId: string | null
   size: string | null
+  colorMode: string | null
   coverage: string | null
   quantity: number
 }
@@ -44,7 +45,9 @@ export function calculateInventoryConsumption(sources: InventoryConsumptionSourc
       continue
     }
     if (source.categoryId === 'cat-bristol' && (source.size === 'A4' || source.size === 'A3')) {
-      add(consumption, source.size === 'A4' ? 'inv-bristol-a4' : 'inv-bristol-a3', quantity)
+      const colorStock = source.size === 'A4' ? 'inv-bristol-color-a4' : 'inv-bristol-color-a3'
+      const regularStock = source.size === 'A4' ? 'inv-bristol-a4' : 'inv-bristol-a3'
+      add(consumption, source.colorMode === 'ملون' ? colorStock : regularStock, quantity)
       continue
     }
     if (source.categoryId === 'cat-chromo' && (source.size === 'A4' || source.size === 'A3')) {

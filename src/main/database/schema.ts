@@ -176,6 +176,7 @@ export const inventoryItems = sqliteTable('inventory_items', {
   reorderPoint: real('reorder_point').notNull().default(1),
   minimumOrderQuantity: real('minimum_order_quantity').notNull().default(1),
   catalogServiceId: text('catalog_service_id').references(() => services.id),
+  categoryId: text('category_id').references(() => serviceCategories.id),
   packageEnabled: integer('package_enabled', { mode: 'boolean' }).notNull().default(false),
   packageName: text('package_name'),
   unitsPerPackage: real('units_per_package'),

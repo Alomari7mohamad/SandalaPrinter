@@ -2,6 +2,8 @@ import Database from 'better-sqlite3'
 import { describe, expect, it } from 'vitest'
 import { ghassanCategories, ghassanProducts } from './ghassan-products.data'
 import { seedGhassanProducts } from './ghassan-products.seed'
+import { seedInventoryItems } from './inventory.seed'
+import { seedPrintingInventory } from './printing-inventory.seed'
 import initialMigration from './migrations/0000_initial.sql?raw'
 import phaseTwoMigration from './migrations/0001_phase2_cost_strategy.sql?raw'
 import sandalaBrandMigration from './migrations/0002_sandala_brand.sql?raw'
@@ -13,13 +15,14 @@ import unitCostOnlyMigration from './migrations/0007_unit_cost_only.sql?raw'
 import suppliersShortagesMigration from './migrations/0008_suppliers_shortages.sql?raw'
 import catalogInventoryProductsMigration from './migrations/0009_catalog_inventory_products.sql?raw'
 import inventoryPackagesMigration from './migrations/0010_inventory_packages.sql?raw'
+import inventoryCategoriesMigration from './migrations/0011_inventory_categories.sql?raw'
 
 function createDatabase(): Database.Database {
   const database = new Database(':memory:')
   database.pragma('foreign_keys=ON')
   for (const migration of [initialMigration, phaseTwoMigration, sandalaBrandMigration, orderDeliveryDetailsMigration,
     orderPaidAtMigration, orderBusinessLogoMigration, bilingualServiceNamesMigration, unitCostOnlyMigration,
-    suppliersShortagesMigration, catalogInventoryProductsMigration, inventoryPackagesMigration]) database.exec(migration)
+    suppliersShortagesMigration, catalogInventoryProductsMigration, inventoryPackagesMigration, inventoryCategoriesMigration]) database.exec(migration)
   return database
 }
 
@@ -57,6 +60,24 @@ describe('منتجات غسان 2000', () => {
 
     seedGhassanProducts(database)
     expect(database.prepare(`SELECT COUNT(*) FROM services WHERE active=1 AND supplier_id='supplier-ghassan-2000'`).pluck().get()).toBe(83)
+    database.close()
+  })
+
+  it('يصنف مواد الطباعة ويضبط الرزم مع الحفاظ على الرصيد الحالي بالورقة', () => {
+    const database = createDatabase()
+    seedInventoryItems(database)
+    database.prepare(`UPDATE inventory_items SET quantity=460 WHERE id='inv-paper-a4'`).run()
+    database.prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity) VALUES ('uncategorized-item', 'مادة قديمة', 'OLD_ITEM', 'قطعة', 3)`).run()
+
+    seedPrintingInventory(database)
+
+    const paper = database.prepare(`SELECT quantity, units_per_package unitsPerPackage,
+      package_price packagePrice, reorder_point reorderPoint, minimum_order_quantity minimumOrderQuantity
+      FROM inventory_items WHERE id='inv-paper-a4'`).get() as Record<string, number>
+    expect(paper).toMatchObject({ quantity: 460, unitsPerPackage: 500, packagePrice: 12, reorderPoint: 499, minimumOrderQuantity: 1 })
+    expect(database.prepare(`SELECT name_ar FROM service_categories WHERE id=(SELECT category_id FROM inventory_items WHERE id='uncategorized-item')`).pluck().get()).toBe('طباعة')
+    expect(database.prepare(`SELECT COUNT(*) FROM inventory_items WHERE id LIKE 'inv-sublimation-%' AND package_enabled=1`).pluck().get()).toBe(2)
+    expect(database.prepare(`SELECT package_enabled FROM inventory_items WHERE id='inv-ncr-invoice-a4'`).pluck().get()).toBe(0)
     database.close()
   })
 })

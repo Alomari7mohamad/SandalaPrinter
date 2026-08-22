@@ -106,6 +106,7 @@ export const orderService = {
         serviceId: item.service.id,
         categoryId: item.service.categoryId,
         size: item.service.size,
+        colorMode: item.service.colorMode,
         coverage: item.service.coverage,
         quantity: item.quantity
       })))
