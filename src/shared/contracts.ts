@@ -164,6 +164,8 @@ export interface InventoryItemDto {
   reorderPoint: number
   minimumOrderQuantity: number
   catalogServiceId: string | null
+  categoryId: string | null
+  categoryName: string | null
   packageEnabled: boolean
   packageName: string | null
   unitsPerPackage: number | null

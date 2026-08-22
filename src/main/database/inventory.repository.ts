@@ -9,11 +9,16 @@ export function listInventoryItems(): InventoryItemDto[] {
     SELECT i.id, i.name, i.sku, i.unit, i.quantity, i.low_stock_threshold lowStockThreshold,
       i.purchase_cost purchaseCost, i.supplier_id supplierId, s.company_name supplierName,
       i.reorder_point reorderPoint, i.minimum_order_quantity minimumOrderQuantity,
-      i.catalog_service_id catalogServiceId, i.package_enabled packageEnabled,
+      i.catalog_service_id catalogServiceId, c.id categoryId, c.name_ar categoryName,
+      i.package_enabled packageEnabled,
       i.package_name packageName, i.units_per_package unitsPerPackage, i.package_price packagePrice,
       i.package_notes packageNotes, i.reorder_package_count reorderPackageCount,
       i.active, i.updated_at updatedAt
-    FROM inventory_items i LEFT JOIN suppliers s ON s.id=i.supplier_id WHERE i.active = 1 ORDER BY i.name
+    FROM inventory_items i
+    LEFT JOIN suppliers s ON s.id=i.supplier_id
+    LEFT JOIN services cs ON cs.id=i.catalog_service_id
+    LEFT JOIN service_categories c ON c.id=cs.category_id
+    WHERE i.active = 1 ORDER BY i.name
   `).all() as InventoryRow[]
   return rows.map((row) => ({ ...row, active: Boolean(row.active), packageEnabled: Boolean(row.packageEnabled) }))
 }
