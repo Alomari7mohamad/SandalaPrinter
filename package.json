@@ -1,6 +1,6 @@
 {
   "name": "sandala-printer",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "تطبيق سطح مكتب محلي لإدارة المطبعة",
   "main": "out/main/index.js",
   "author": "Sandala Printer",
@@ -8,12 +8,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "npm run native:electron && electron-vite dev",
     "build": "npm run typecheck && npm run test && electron-vite build",
+    "native:node": "npm rebuild better-sqlite3",
+    "native:electron": "electron-rebuild -f -w better-sqlite3",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "test": "vitest run",
+    "test": "npm run native:node && vitest run",
     "test:watch": "vitest",
-    "electron:build": "npm run build && electron-builder --win nsis && node scripts/generate-update-manifest.mjs",
+    "electron:build": "npm run build && npm run native:electron && electron-builder --win nsis --config.npmRebuild=false && node scripts/generate-update-manifest.mjs",
     "db:generate": "drizzle-kit generate",
     "postinstall": "electron-builder install-app-deps"
   },
@@ -33,6 +35,7 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.12",
@@ -47,6 +50,7 @@
     "vitest": "^3.2.4"
   },
   "build": {
+    "npmRebuild": false,
     "appId": "com.sandala.printer",
     "productName": "Sandala Printer",
     "artifactName": "Sandala-Printer-Setup.${ext}",

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, dialog, shell } from 'electron'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { closeDatabase, initializeDatabase } from './database/client'
@@ -47,23 +47,55 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  if (process.env.ELECTRON_RENDERER_URL) {
-    void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
-  } else {
-    void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  const rendererLoad = process.env.ELECTRON_RENDERER_URL
+    ? mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+    : mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  void rendererLoad.catch((error: unknown) => {
+    console.error('Failed to load the application renderer', error)
+    dialog.showErrorBox(
+      'تعذر فتح Sandala Printer',
+      'تعذر تحميل واجهة التطبيق. يرجى إغلاق البرنامج وإعادة تشغيله.'
+    )
+    mainWindow.destroy()
+  })
 }
 
-app.whenReady().then(() => {
-  app.setAppUserModelId('com.sandala.printer')
-  initializeDatabase()
-  registerIpcHandlers()
-  createWindow()
-  void initializeUpdateService()
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+
+if (!hasSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    if (!mainWindow) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
   })
-})
+
+  void app.whenReady().then(() => {
+    try {
+      app.setAppUserModelId('com.sandala.printer')
+      initializeDatabase()
+      registerIpcHandlers()
+      createWindow()
+      void initializeUpdateService()
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow()
+      })
+    } catch (error) {
+      console.error('Failed to start Sandala Printer', error)
+      dialog.showErrorBox(
+        'تعذر تشغيل Sandala Printer',
+        'تعذر الاتصال بقاعدة بيانات التطبيق. لم يتم حذف أي بيانات. يرجى إعادة تشغيل البرنامج، وإن استمرت المشكلة تواصل مع الدعم.'
+      )
+      app.quit()
+    }
+  }).catch((error: unknown) => {
+    console.error('Electron failed before application startup', error)
+    app.quit()
+  })
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
