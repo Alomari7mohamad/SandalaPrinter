@@ -1,4 +1,4 @@
-import { PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { PanelRightOpen } from 'lucide-react'
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
@@ -14,11 +14,13 @@ export function AppLayout() {
 
   return (
     <div className={`app-shell${sidebarOpen ? '' : ' sidebar-collapsed'}`}>
-      <Sidebar />
-      <button type="button" className="sidebar-toggle" onClick={toggleSidebar} aria-expanded={sidebarOpen} aria-label={sidebarOpen ? 'إغلاق القائمة الجانبية' : 'فتح القائمة الجانبية'} title={sidebarOpen ? 'إخفاء القائمة الجانبية' : 'فتح القائمة الجانبية'}>
-        {sidebarOpen ? <PanelRightClose size={18} strokeWidth={2.4} /> : <PanelRightOpen size={19} strokeWidth={2.4} />}
-        <span>{sidebarOpen ? 'إخفاء القائمة' : 'فتح القائمة'}</span>
-      </button>
+      <Sidebar onCollapse={toggleSidebar} />
+      {!sidebarOpen && <aside className="sidebar-open-rail" aria-label="القائمة الجانبية مغلقة">
+        <button type="button" className="sidebar-open-button" onClick={toggleSidebar} aria-label="فتح القائمة الجانبية" title="فتح القائمة الجانبية">
+          <PanelRightOpen size={20} strokeWidth={2.4} />
+          <span>القائمة</span>
+        </button>
+      </aside>}
       <main className="main-content"><UpdateNotification /><Outlet /></main>
     </div>
   )

@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, Plus, Settings, ShoppingBasket, Tags, UserRound } from 'lucide-react'
+import { Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, PanelRightClose, Plus, Settings, ShoppingBasket, Tags, UserRound } from 'lucide-react'
 import sandalaLogo from '../assets/sandala-logo.png'
 import sandalaIcon from '../assets/sandala-icon.png'
 
@@ -11,7 +11,7 @@ const items = [
   ['/settings', 'الإعدادات', Settings],
 ] as const
 
-export function Sidebar() {
+export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const [unpaidOrders, setUnpaidOrders] = useState(0)
   const location = useLocation()
   useEffect(() => {
@@ -25,6 +25,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand"><img className="brand-logo full" src={sandalaLogo} alt="Sandala Printer" /><img className="brand-logo mark" src={sandalaIcon} alt="Sandala Printer" /></div>
+      <button type="button" className="sidebar-collapse-control" onClick={onCollapse} aria-label="إغلاق القائمة الجانبية" title="إغلاق القائمة الجانبية"><PanelRightClose size={17} /><span>إخفاء القائمة</span></button>
       <NavLink to="/new-order" className="new-order-button"><Plus size={19} /> طلب جديد <kbd>Ctrl N</kbd></NavLink>
       <nav>
         {items.map(([to, label, Icon]) => (
