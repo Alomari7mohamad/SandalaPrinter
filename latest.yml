@@ -1,8 +1,8 @@
-version: 0.6.4
+version: 0.7.0
 files:
   - url: Sandala-Printer-Setup.exe
-    sha512: UXCwJLCklKNppRXpauVMXqVziPztOmX9ejqFNI6kGeOuNaBFn2aoAzFKoNhWVSt7jpBMNdWfx6EzkWMbNaUkDQ==
-    size: 103649728
+    sha512: HM8GOFAFxdQbTEgHHVI+xUxQEOrVBPxOa2jPHihNj0UEi6EhcXziiwQfV6ZgV9V7QxJmmQkto7m1YLBsuU1U2Q==
+    size: 103650099
 path: Sandala-Printer-Setup.exe
-sha512: UXCwJLCklKNppRXpauVMXqVziPztOmX9ejqFNI6kGeOuNaBFn2aoAzFKoNhWVSt7jpBMNdWfx6EzkWMbNaUkDQ==
-releaseDate: '2026-08-28T23:54:37.866Z'
+sha512: HM8GOFAFxdQbTEgHHVI+xUxQEOrVBPxOa2jPHihNj0UEi6EhcXziiwQfV6ZgV9V7QxJmmQkto7m1YLBsuU1U2Q==
+releaseDate: '2026-08-29T00:12:34.641Z'

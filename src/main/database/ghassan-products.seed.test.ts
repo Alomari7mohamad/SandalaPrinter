@@ -27,11 +27,23 @@ function createDatabase(): Database.Database {
 }
 
 describe('منتجات غسان 2000', () => {
-  it('تحتوي جميع المنتجات المستخرجة من الملفات ضمن التصنيفات الثلاثة', () => {
-    expect(ghassanCategories.map((category) => category.name)).toEqual(['منتجات سبليميشن', 'دروع', 'براويز'])
+  it('توزع جميع المنتجات المستخرجة على تصنيفاتها التفصيلية', () => {
+    expect(ghassanCategories.map((category) => category.name)).toEqual([
+      'أكواب وعبوات سبليميشن', 'حقائب ومقالم سبليميشن', 'دفاتر سبليميشن',
+      'مستلزمات مكتبية سبليميشن', 'هدايا وديكور سبليميشن', 'براويز سبليميشن',
+      'ميداليات سبليميشن', 'أعلام وأوشحة', 'دروع', 'شهادات', 'براويز'
+    ])
     expect(ghassanProducts).toHaveLength(83)
-    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION')).toHaveLength(52)
-    expect(ghassanProducts.filter(([category]) => category === 'AWARDS')).toHaveLength(14)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_DRINKWARE')).toHaveLength(16)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_BAGS')).toHaveLength(5)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_NOTEBOOKS')).toHaveLength(3)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_DESK')).toHaveLength(4)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_GIFTS')).toHaveLength(4)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_FRAMES')).toHaveLength(12)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_KEYCHAINS')).toHaveLength(4)
+    expect(ghassanProducts.filter(([category]) => category === 'SUBLIMATION_FLAGS')).toHaveLength(4)
+    expect(ghassanProducts.filter(([category]) => category === 'AWARDS')).toHaveLength(10)
+    expect(ghassanProducts.filter(([category]) => category === 'CERTIFICATES')).toHaveLength(4)
     expect(ghassanProducts.filter(([category]) => category === 'FRAMES')).toHaveLength(17)
   })
 
@@ -60,6 +72,34 @@ describe('منتجات غسان 2000', () => {
 
     seedGhassanProducts(database)
     expect(database.prepare(`SELECT COUNT(*) FROM services WHERE active=1 AND supplier_id='supplier-ghassan-2000'`).pluck().get()).toBe(83)
+    database.close()
+  })
+
+  it('ينقل منتجات الإصدار السابق إلى التصنيفات الجديدة دون تغيير المخزون أو الأسعار المعدلة', () => {
+    const database = createDatabase()
+    seedGhassanProducts(database)
+    database.prepare(`INSERT INTO service_categories (id, code, name_ar)
+      VALUES ('cat-ghassan-sublimation', 'GHASSAN_SUBLIMATION', 'منتجات سبليميشن')`).run()
+    database.prepare(`UPDATE services SET category_id='cat-ghassan-sublimation'
+      WHERE id='ghassan-product-001'`).run()
+    database.prepare(`UPDATE inventory_items SET quantity=17, purchase_cost=99
+      WHERE id='inv-ghassan-product-001'`).run()
+    database.prepare(`UPDATE pricing_rules SET sale_unit_price=88
+      WHERE id='ghassan-price-001'`).run()
+    database.prepare(`UPDATE app_settings SET value='1' WHERE key='seed.ghassanProductsVersion'`).run()
+
+    seedGhassanProducts(database)
+
+    expect(database.prepare(`SELECT active FROM service_categories
+      WHERE id='cat-ghassan-sublimation'`).pluck().get()).toBe(0)
+    expect(database.prepare(`SELECT c.name_ar FROM services s JOIN service_categories c ON c.id=s.category_id
+      WHERE s.id='ghassan-product-001'`).pluck().get()).toBe('أكواب وعبوات سبليميشن')
+    expect(database.prepare(`SELECT quantity FROM inventory_items
+      WHERE id='inv-ghassan-product-001'`).pluck().get()).toBe(17)
+    expect(database.prepare(`SELECT purchase_cost FROM inventory_items
+      WHERE id='inv-ghassan-product-001'`).pluck().get()).toBe(99)
+    expect(database.prepare(`SELECT sale_unit_price FROM pricing_rules
+      WHERE id='ghassan-price-001'`).pluck().get()).toBe(88)
     database.close()
   })
 
