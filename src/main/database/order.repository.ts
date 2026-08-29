@@ -5,7 +5,8 @@ interface OrderRow extends OrderSummaryDto { deliveryAddress?: string | null; bu
 
 const summarySelect = `
   SELECT o.id, o.order_number orderNumber, o.customer_name_snapshot customerName,
-    o.customer_phone_snapshot customerPhone, o.total, o.total_cost totalCost, o.profit,
+    o.customer_phone_snapshot customerPhone, o.subtotal, o.discount_type discountType, o.discount_value discountValue,
+    o.discount_amount discountAmount, o.total, o.total_cost totalCost, o.profit,
     o.profit_margin profitMargin, o.status, o.payment_status paymentStatus,
     COUNT(oi.id) itemsCount, o.ordered_at orderedAt
   FROM orders o LEFT JOIN order_items oi ON oi.order_id = o.id
@@ -33,6 +34,7 @@ export function getOrder(id: string): OrderDetailDto | undefined {
   const order = getSqlite().prepare(`
     SELECT o.id, o.order_number orderNumber, o.customer_name_snapshot customerName,
       o.customer_phone_snapshot customerPhone, o.delivery_address deliveryAddress, o.business_logo_data_url businessLogoDataUrl, o.notes,
+      o.subtotal, o.discount_type discountType, o.discount_value discountValue, o.discount_amount discountAmount,
       o.total, o.total_cost totalCost, o.profit, o.profit_margin profitMargin, o.status,
       o.payment_status paymentStatus, COUNT(oi.id) itemsCount, o.ordered_at orderedAt
     FROM orders o LEFT JOIN order_items oi ON oi.order_id = o.id

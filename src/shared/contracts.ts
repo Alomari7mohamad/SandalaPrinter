@@ -95,6 +95,8 @@ export interface PricingRuleInput {
 export interface CreateOrderItemInput { serviceId: string; quantity: number }
 export interface CreateOrderInput {
   items: CreateOrderItemInput[]
+  discountType: 'NONE' | 'FIXED' | 'PERCENT'
+  discountValue: number
   customerName: string | null
   customerPhone: string | null
   deliveryAddress: string | null
@@ -121,6 +123,10 @@ export interface OrderSummaryDto {
   customerName: string
   customerPhone: string | null
   total: number
+  subtotal: number
+  discountType: 'NONE' | 'FIXED' | 'PERCENT'
+  discountValue: number
+  discountAmount: number
   totalCost: number
   profit: number
   profitMargin: number

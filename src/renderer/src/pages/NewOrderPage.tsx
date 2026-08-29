@@ -1,13 +1,24 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Eye, EyeOff, ImagePlus, LoaderCircle, Plus, ShoppingCart, Trash2, UserRound } from 'lucide-react'
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import type { CreateOrderResult, ServiceDto } from '../../../shared/contracts'
-import { calculateDraftTotals } from '../../../shared/orders/order-draft'
+import { calculateDraftTotals, type OrderDiscountType } from '../../../shared/orders/order-draft'
 import { usesFixedQuantities, type PriceRule, type PricingResult } from '../../../shared/pricing/pricing-types'
 import { PageHeader } from '../components/PageHeader'
 import { ARABIC_WITH_LATIN_DIGITS, formatCurrency, formatNumber } from '../utils/format'
 import { getArabicError } from '../utils/errors'
 
 interface DraftItem { key: string; service: ServiceDto; quantity: number; pricing: PricingResult }
+interface StoredOrderDraft {
+  items: DraftItem[]
+  customerName: string
+  customerPhone: string
+  deliveryAddress: string
+  businessLogoDataUrl: string | null
+  notes: string
+  customerPanelOpen: boolean
+  discountType: Exclude<OrderDiscountType, 'NONE'>
+  discountValue: string
+}
 
 interface ServiceGroup { id: string; name: string; categoryIds: string[]; services: ServiceDto[] }
 
@@ -21,7 +32,23 @@ const preferredGroups = [
   { id: 'other', name: 'أخرى', categoryIds: ['cat-other-products'] }
 ]
 
+const DRAFT_STORAGE_KEY = 'sandala:new-order-draft:v1'
+const emptyStoredDraft: StoredOrderDraft = { items: [], customerName: '', customerPhone: '', deliveryAddress: '', businessLogoDataUrl: null, notes: '', customerPanelOpen: false, discountType: 'FIXED', discountValue: '' }
+
+function readStoredDraft(): StoredOrderDraft {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY) ?? 'null') as Partial<StoredOrderDraft> | null
+    if (!parsed) return emptyStoredDraft
+    return {
+      items: Array.isArray(parsed.items) ? parsed.items : [], customerName: parsed.customerName ?? '', customerPhone: parsed.customerPhone ?? '',
+      deliveryAddress: parsed.deliveryAddress ?? '', businessLogoDataUrl: parsed.businessLogoDataUrl ?? null, notes: parsed.notes ?? '',
+      customerPanelOpen: Boolean(parsed.customerPanelOpen), discountType: parsed.discountType === 'PERCENT' ? 'PERCENT' : 'FIXED', discountValue: parsed.discountValue ?? ''
+    }
+  } catch { return emptyStoredDraft }
+}
+
 export function NewOrderPage() {
+  const [restoredDraft] = useState(readStoredDraft)
   const [services, setServices] = useState<ServiceDto[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState('')
   const [selectedType, setSelectedType] = useState('')
@@ -31,18 +58,21 @@ export function NewOrderPage() {
   const [rulesLoading, setRulesLoading] = useState(false)
   const [pricing, setPricing] = useState<PricingResult | null>(null)
   const [pricingLoading, setPricingLoading] = useState(false)
-  const [items, setItems] = useState<DraftItem[]>([])
-  const [customerName, setCustomerName] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('')
-  const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [businessLogoDataUrl, setBusinessLogoDataUrl] = useState<string | null>(null)
-  const [notes, setNotes] = useState('')
-  const [customerPanelOpen, setCustomerPanelOpen] = useState(false)
+  const [items, setItems] = useState<DraftItem[]>(restoredDraft.items)
+  const [customerName, setCustomerName] = useState(restoredDraft.customerName)
+  const [customerPhone, setCustomerPhone] = useState(restoredDraft.customerPhone)
+  const [deliveryAddress, setDeliveryAddress] = useState(restoredDraft.deliveryAddress)
+  const [businessLogoDataUrl, setBusinessLogoDataUrl] = useState<string | null>(restoredDraft.businessLogoDataUrl)
+  const [notes, setNotes] = useState(restoredDraft.notes)
+  const [customerPanelOpen, setCustomerPanelOpen] = useState(restoredDraft.customerPanelOpen)
   const [showInternalDetails, setShowInternalDetails] = useState(false)
+  const [discountType, setDiscountType] = useState<Exclude<OrderDiscountType, 'NONE'>>(restoredDraft.discountType)
+  const [discountValue, setDiscountValue] = useState(restoredDraft.discountValue)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [savedOrder, setSavedOrder] = useState<CreateOrderResult | null>(null)
+  const restoredPricesRefreshed = useRef(false)
 
   useEffect(() => {
     window.desktopApi.catalog.listServices().then((rows) => {
@@ -50,6 +80,26 @@ export function NewOrderPage() {
       setServices(active)
     }).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل الخدمات.'))).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    const draft: StoredOrderDraft = { items, customerName, customerPhone, deliveryAddress, businessLogoDataUrl, notes, customerPanelOpen, discountType, discountValue }
+    const hasContent = items.length > 0 || Boolean(customerName || customerPhone || deliveryAddress || businessLogoDataUrl || notes || Number(discountValue) > 0)
+    try {
+      if (hasContent) window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
+      else window.localStorage.removeItem(DRAFT_STORAGE_KEY)
+    } catch { /* تعذر الحفظ محلياً، ولا يجب تعطيل إنشاء الطلب. */ }
+  }, [items, customerName, customerPhone, deliveryAddress, businessLogoDataUrl, notes, customerPanelOpen, discountType, discountValue])
+
+  useEffect(() => {
+    if (restoredPricesRefreshed.current || services.length === 0 || restoredDraft.items.length === 0) return
+    restoredPricesRefreshed.current = true
+    Promise.all(restoredDraft.items.map(async (item) => {
+      const currentService = services.find((service) => service.id === item.service.id)
+      if (!currentService) return null
+      try { return { ...item, service: currentService, pricing: await window.desktopApi.pricing.calculate(currentService.id, item.quantity) } }
+      catch { return null }
+    })).then((refreshed) => setItems(refreshed.filter((item): item is DraftItem => item !== null)))
+  }, [services, restoredDraft.items])
 
   const selected = services.find((service) => service.id === selectedId)
   const fixedQuantity = Boolean(selected && usesFixedQuantities(selected))
@@ -106,7 +156,9 @@ export function NewOrderPage() {
   const typeOptions = useMemo(() => [...new Set((selectedGroup?.services ?? []).map(serviceTypeLabel))], [selectedGroup])
   const effectiveSelectedType = selectedType || (typeOptions.length === 1 ? typeOptions[0]! : '')
   const servicesForType = useMemo(() => (selectedGroup?.services ?? []).filter((service) => serviceTypeLabel(service) === effectiveSelectedType), [selectedGroup, effectiveSelectedType])
-  const totals = useMemo(() => calculateDraftTotals(items.map((item) => ({ salePrice: item.pricing.salePrice ?? 0, cost: item.pricing.cost ?? 0 }))), [items])
+  const numericDiscountValue = discountType === 'PERCENT' ? Math.min(Number(discountValue), 100) : Number(discountValue)
+  const effectiveDiscountType: OrderDiscountType = Number.isFinite(numericDiscountValue) && numericDiscountValue > 0 ? discountType : 'NONE'
+  const totals = useMemo(() => calculateDraftTotals(items.map((item) => ({ salePrice: item.pricing.salePrice ?? 0, cost: item.pricing.cost ?? 0 })), { type: effectiveDiscountType, value: Number.isFinite(numericDiscountValue) ? numericDiscountValue : 0 }), [items, effectiveDiscountType, numericDiscountValue])
   const canAdd = Boolean(selected && pricing && !pricing.requiresManualPricing && pricing.salePrice !== null && pricing.cost !== null)
 
   const selectGroup = (groupId: string) => {
@@ -138,26 +190,34 @@ export function NewOrderPage() {
     reader.onerror = () => setError('تعذر قراءة ملف الشعار.')
     reader.readAsDataURL(file)
   }
+  const cancelDraft = () => {
+    if (!window.confirm('هل أنت متأكد من إلغاء الطلب الحالي وحذف مسودته؟')) return
+    setItems([]); setCustomerName(''); setCustomerPhone(''); setDeliveryAddress(''); setBusinessLogoDataUrl(null); setNotes(''); setCustomerPanelOpen(false)
+    setDiscountType('FIXED'); setDiscountValue(''); setSelectedGroupId(''); setSelectedType(''); setSelectedId(''); setQuantity('1'); setPricing(null); setSavedOrder(null); setError('')
+    window.localStorage.removeItem(DRAFT_STORAGE_KEY)
+  }
   const saveOrder = async () => {
     if (items.length === 0) return
     setSaving(true); setError(''); setSavedOrder(null)
     try {
       const result = await window.desktopApi.orders.create({
         items: items.map((item) => ({ serviceId: item.service.id, quantity: item.quantity })),
+        discountType: effectiveDiscountType,
+        discountValue: effectiveDiscountType === 'NONE' ? 0 : numericDiscountValue,
         customerName: customerName.trim() || null,
         customerPhone: customerPhone.trim() || null,
         deliveryAddress: deliveryAddress.trim() || null,
         businessLogoDataUrl,
         notes: notes.trim() || null
       })
-      setSavedOrder(result); setItems([]); setCustomerName(''); setCustomerPhone(''); setDeliveryAddress(''); setBusinessLogoDataUrl(null); setNotes(''); setCustomerPanelOpen(false)
+      setSavedOrder(result); setItems([]); setCustomerName(''); setCustomerPhone(''); setDeliveryAddress(''); setBusinessLogoDataUrl(null); setNotes(''); setCustomerPanelOpen(false); setDiscountType('FIXED'); setDiscountValue(''); window.localStorage.removeItem(DRAFT_STORAGE_KEY)
       window.dispatchEvent(new Event('sandala:orders-changed'))
       window.dispatchEvent(new Event('sandala:inventory-changed'))
     } catch (cause) { setError(getArabicError(cause, 'تعذر تأكيد الطلب. حاول مرة أخرى.')) } finally { setSaving(false) }
   }
 
   return <div className="page new-order-page">
-    <PageHeader title="طلب جديد" subtitle={`التاريخ والوقت: ${new Intl.DateTimeFormat(ARABIC_WITH_LATIN_DIGITS, { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`} />
+    <PageHeader title="طلب جديد" subtitle={`التاريخ والوقت: ${new Intl.DateTimeFormat(ARABIC_WITH_LATIN_DIGITS, { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`} action={<button type="button" className="cancel-draft-button" disabled={items.length === 0 && !customerName && !customerPhone && !deliveryAddress && !notes && !businessLogoDataUrl && !discountValue} onClick={cancelDraft}><Trash2 size={17} /> إلغاء الطلب</button>} />
     {error && <div className="alert error">{error}</div>}
     {savedOrder && <div className="alert success-alert"><CheckCircle2 size={20} /><div><b>تم تأكيد الطلب وخصم المخزون</b><span>{savedOrder.orderNumber} • {savedOrder.customerName} • الإجمالي {formatCurrency(savedOrder.total)}</span></div></div>}
     <div className="order-layout">
@@ -184,19 +244,19 @@ export function NewOrderPage() {
             </div>
             {selected && fixedQuantity && <div className="fixed-quantity-note">هذه الخدمة تُباع بكميات محددة؛ اختر الكمية من القائمة.</div>}
             <div className={`automatic-price-area${selected ? '' : ' hidden'}`}>
-              {pricingLoading ? <div className="automatic-price-loading"><LoaderCircle className="spin" size={23} /> جارٍ حساب السعر...</div> : pricing?.requiresManualPricing ? <div className="automatic-price-warning"><AlertTriangle size={23} /><div><b>لا يوجد سعر محدد لهذه الكمية</b><span>اختر كمية لها قاعدة سعر أو أضف القاعدة من صفحة الأسعار.</span></div></div> : pricing && <div className={`automatic-price-result${showInternalDetails ? '' : ' sale-only'}`}><div><span>سعر البيع</span><b>{formatCurrency(pricing.salePrice ?? 0, 4)}</b></div>{showInternalDetails && <><div><span>التكلفة</span><b>{formatCurrency(pricing.cost ?? 0, 4)}</b></div><div><span>الربح</span><b className={(pricing.profit ?? 0) < 0 ? 'negative' : 'positive'}>{formatCurrency(pricing.profit ?? 0, 4)}</b></div><div><span>هامش الربح</span><b>{formatNumber(pricing.profitMargin ?? 0, 2, 2)}%</b></div></>}</div>}
+              {pricingLoading ? <div className="automatic-price-loading"><LoaderCircle className="spin" size={23} /> جارٍ حساب السعر...</div> : pricing?.requiresManualPricing ? <div className="automatic-price-warning"><AlertTriangle size={23} /><div><b>لا يوجد سعر محدد لهذه الكمية</b><span>اختر كمية لها قاعدة سعر أو أضف القاعدة من صفحة الأسعار.</span></div></div> : pricing && <div className="automatic-price-result sale-only"><div><span>سعر البيع</span><b>{formatCurrency(pricing.salePrice ?? 0, 4)}</b></div></div>}
             </div>
             {selected && <button className="primary-button add-service-button" disabled={!canAdd} onClick={addItem}><Plus size={18} /> إضافة الخدمة إلى الطلب</button>}
           </div>}
         </section>
 
         <section className="panel order-items-panel">
-          <div className="section-title"><div><h2>خدمات الطلب</h2><p>{items.length} خدمة مضافة</p></div><ShoppingCart size={22} /></div>
-          {items.length === 0 ? <div className="empty-state order-empty"><ShoppingCart size={37} /><b>لم تتم إضافة خدمات بعد</b><span>اختر خدمة وكمية، وسيظهر سعرها تلقائيًا قبل الإضافة.</span></div> : <div className="table-scroll"><table className="data-table order-items-table"><thead><tr><th>الخدمة</th><th>الكمية</th><th>سعر البيع</th><th>التكلفة</th><th>الربح</th><th></th></tr></thead><tbody>{items.map((item) => <tr key={item.key}><td><b>{item.service.nameAr}</b><small>{item.service.categoryName}</small></td><td>{formatNumber(item.quantity)}</td><td>{formatCurrency(item.pricing.salePrice ?? 0, 4)}</td><td>{formatCurrency(item.pricing.cost ?? 0, 4)}</td><td className={(item.pricing.profit ?? 0) < 0 ? 'negative' : 'positive'}>{formatCurrency(item.pricing.profit ?? 0, 4)}</td><td><button className="remove-item-button" onClick={() => setItems((current) => current.filter((row) => row.key !== item.key))} title="حذف"><Trash2 size={17} /></button></td></tr>)}</tbody></table></div>}
+          <div className="section-title"><div><h2>خدمات الطلب</h2><p>{items.length} خدمة مضافة</p></div><button type="button" className="order-financials-toggle" onClick={() => setShowInternalDetails((current) => !current)}>{showInternalDetails ? <EyeOff size={17} /> : <Eye size={17} />}{showInternalDetails ? 'إخفاء التكلفة والربح' : 'إظهار التكلفة والربح'}</button></div>
+          {items.length === 0 ? <div className="empty-state order-empty"><ShoppingCart size={37} /><b>لم تتم إضافة خدمات بعد</b><span>اختر خدمة وكمية، وسيظهر سعرها تلقائيًا قبل الإضافة.</span></div> : <div className="table-scroll"><table className={`data-table order-items-table${showInternalDetails ? ' financials-visible' : ''}`}><thead><tr><th>الخدمة</th><th>الكمية</th><th>سعر البيع</th>{showInternalDetails && <><th>التكلفة</th><th>الربح</th></>}<th></th></tr></thead><tbody>{items.map((item) => <tr key={item.key}><td><b>{item.service.nameAr}</b><small>{item.service.categoryName}</small></td><td>{formatNumber(item.quantity)}</td><td>{formatCurrency(item.pricing.salePrice ?? 0, 4)}</td>{showInternalDetails && <><td>{formatCurrency(item.pricing.cost ?? 0, 4)}</td><td className={(item.pricing.profit ?? 0) < 0 ? 'negative' : 'positive'}>{formatCurrency(item.pricing.profit ?? 0, 4)}</td></>}<td><button className="remove-item-button" onClick={() => setItems((current) => current.filter((row) => row.key !== item.key))} title="حذف"><Trash2 size={17} /></button></td></tr>)}</tbody></table></div>}
         </section>
       </div>
 
-      <aside className="panel order-summary live-summary"><h2>إجمالي الطلب</h2><div className="summary-row"><span>عدد الخدمات</span><b>{formatNumber(items.length)}</b></div><div className="summary-row"><span>السعر</span><b>{formatCurrency(totals.total)}</b></div>{showInternalDetails && <><div className="summary-row internal"><span>التكلفة</span><b>{formatCurrency(totals.totalCost)}</b></div><div className="summary-row internal"><span>الربح</span><b className={totals.profit < 0 ? 'negative' : 'positive'}>{formatCurrency(totals.profit)}</b></div><div className="summary-row internal"><span>هامش الربح</span><b>{formatNumber(totals.profitMargin, 2, 2)}%</b></div></>}<button type="button" className="internal-details-toggle" onClick={() => setShowInternalDetails((current) => !current)}>{showInternalDetails ? <EyeOff size={17} /> : <Eye size={17} />}{showInternalDetails ? 'إخفاء التكلفة والربح' : 'إظهار التكلفة والربح'}</button><button className="primary-button full save-order-button" disabled={items.length === 0 || saving} onClick={() => void saveOrder()}>{saving ? <><LoaderCircle className="spin" size={18} /> جارٍ التأكيد...</> : 'تأكيد الطلب'}</button><small>يُخصم المخزون عند التأكيد، وتُحتسب المبيعات والأرباح بعد تسجيل الدفع.</small></aside>
+      <aside className="panel order-summary live-summary"><h2>إجمالي الطلب</h2><div className="summary-row"><span>عدد الخدمات</span><b>{formatNumber(items.length)}</b></div><section className="manager-discount-card"><div className="manager-discount-heading"><b>خصم المدير</b><button type="button" onClick={() => { setDiscountType('PERCENT'); setDiscountValue('20') }}>خصم الطلاب 20%</button></div><div className="discount-mode-switch"><button type="button" className={discountType === 'FIXED' ? 'active' : ''} onClick={() => setDiscountType('FIXED')}>قيمة بالشواقل</button><button type="button" className={discountType === 'PERCENT' ? 'active' : ''} onClick={() => setDiscountType('PERCENT')}>نسبة مئوية</button></div><label><span>{discountType === 'FIXED' ? 'قيمة الخصم' : 'نسبة الخصم'}</span><div><input type="number" min="0" max={discountType === 'PERCENT' ? 100 : undefined} step="0.01" value={discountValue} onChange={(event) => setDiscountValue(event.target.value)} placeholder="0" /><b>{discountType === 'FIXED' ? '₪' : '%'}</b></div></label></section><div className="summary-row"><span>قبل الخصم</span><b>{formatCurrency(totals.subtotal)}</b></div><div className="summary-row discount-total-row"><span>الخصم</span><b>- {formatCurrency(totals.discountAmount)}</b></div><div className="summary-row final-order-total"><span>السعر النهائي</span><b>{formatCurrency(totals.total)}</b></div><button className="primary-button full save-order-button" disabled={items.length === 0 || saving} onClick={() => void saveOrder()}>{saving ? <><LoaderCircle className="spin" size={18} /> جارٍ التأكيد...</> : 'تأكيد الطلب'}</button><small>تُحفظ المسودة تلقائيًا عند الانتقال بين الصفحات. يُخصم المخزون عند التأكيد، وتُحتسب المبيعات والأرباح بعد تسجيل الدفع.</small></aside>
     </div>
   </div>
 }

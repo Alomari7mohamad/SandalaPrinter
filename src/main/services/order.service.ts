@@ -4,6 +4,7 @@ import { z } from 'zod'
 import type { CreateOrderInput, CreateOrderResult } from '../../shared/contracts'
 import type { OrderListQuery } from '../../shared/contracts'
 import { calculateInventoryConsumption } from '../../shared/inventory/inventory-consumption'
+import { calculateDraftTotals } from '../../shared/orders/order-draft'
 import { calculatePrice } from '../../shared/pricing/pricing-engine'
 import * as catalogRepository from '../database/catalog.repository'
 import { getSqlite } from '../database/client'
@@ -11,6 +12,8 @@ import * as orderRepository from '../database/order.repository'
 
 const createOrderSchema = z.object({
   items: z.array(z.object({ serviceId: z.string().min(2), quantity: z.number().positive().finite() })).min(1, 'أضف خدمة واحدة على الأقل إلى الطلب.'),
+  discountType: z.enum(['NONE', 'FIXED', 'PERCENT']),
+  discountValue: z.number().nonnegative().finite(),
   customerName: z.string().trim().max(150).nullable(),
   customerPhone: z.string().trim().max(50).nullable(),
   deliveryAddress: z.string().trim().max(500).nullable(),
@@ -75,10 +78,11 @@ export const orderService = {
     const parsed = createOrderSchema.safeParse(input)
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'بيانات الطلب غير صحيحة.')
     const preparedItems = parsed.data.items.map((item) => prepareItem(item.serviceId, item.quantity))
-    const total = preparedItems.reduce((sum, item) => sum.plus(item.salePrice), new Decimal(0))
-    const totalCost = preparedItems.reduce((sum, item) => sum.plus(item.cost), new Decimal(0))
-    const profit = total.minus(totalCost)
-    const profitMargin = total.isZero() ? new Decimal(0) : profit.dividedBy(total).times(100)
+    const subtotal = preparedItems.reduce((sum, item) => sum.plus(item.salePrice), new Decimal(0)).toNumber()
+    const discountValue = parsed.data.discountType === 'PERCENT'
+      ? Math.min(parsed.data.discountValue, 100)
+      : parsed.data.discountType === 'FIXED' ? Math.min(parsed.data.discountValue, subtotal) : 0
+    const totals = calculateDraftTotals(preparedItems.map((item) => ({ salePrice: item.salePrice, cost: item.cost })), { type: parsed.data.discountType, value: discountValue })
     const database = getSqlite()
     const id = randomUUID()
     const customerName = parsed.data.customerName || 'زبون عام'
@@ -90,8 +94,8 @@ export const orderService = {
       const now = new Date().toISOString()
       database.prepare(`
         INSERT INTO orders (id, order_number, customer_id, status, payment_status, subtotal, discount_type, discount_value, discount_amount, total, total_cost, profit, profit_margin, paid_amount, remaining_amount, customer_name_snapshot, customer_phone_snapshot, delivery_address, business_logo_data_url, notes, ordered_at)
-        VALUES (?, ?, 'cash-customer', 'NEW', 'UNPAID', ?, 'NONE', 0, 0, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, orderNumber, total.toNumber(), total.toNumber(), totalCost.toNumber(), profit.toNumber(), profitMargin.toDecimalPlaces(4).toNumber(), total.toNumber(), customerName, parsed.data.customerPhone, parsed.data.deliveryAddress, parsed.data.businessLogoDataUrl, parsed.data.notes, now)
+        VALUES (?, ?, 'cash-customer', 'NEW', 'UNPAID', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, orderNumber, totals.subtotal, parsed.data.discountType, discountValue, totals.discountAmount, totals.total, totals.totalCost, totals.profit, totals.profitMargin, totals.total, customerName, parsed.data.customerPhone, parsed.data.deliveryAddress, parsed.data.businessLogoDataUrl, parsed.data.notes, now)
 
       const insertItem = database.prepare(`
         INSERT INTO order_items (id, order_id, service_id, service_code_snapshot, service_name_snapshot, service_name_he_snapshot, category_snapshot, material_type_snapshot, size_snapshot, color_mode_snapshot, unit_snapshot, quantity, unit_cost_snapshot, total_cost, pricing_rule_id_snapshot, pricing_rule_snapshot, unit_sale_price, total_sale_price, profit, profit_margin, manual_price)
@@ -121,6 +125,6 @@ export const orderService = {
       }
     })()
 
-    return { id, orderNumber, customerName, total: total.toNumber(), totalCost: totalCost.toNumber(), profit: profit.toNumber(), profitMargin: profitMargin.toDecimalPlaces(4).toNumber(), itemsCount: preparedItems.length }
+    return { id, orderNumber, customerName, total: totals.total, totalCost: totals.totalCost, profit: totals.profit, profitMargin: totals.profitMargin, itemsCount: preparedItems.length }
   }
 }
