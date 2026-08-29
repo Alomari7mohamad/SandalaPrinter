@@ -10,6 +10,7 @@ import { InventoryPage } from './pages/InventoryPage'
 import { ProfitsPage } from './pages/ProfitsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ShortagesPage } from './pages/ShortagesPage'
+import { BookPrintingPage } from './pages/BookPrintingPage'
 
 export function App() {
   const navigate = useNavigate()
@@ -41,6 +42,7 @@ export function App() {
         <Route path="pricing" element={<PricingPage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="shortages" element={<ShortagesPage />} />
+        <Route path="book-printing" element={<BookPrintingPage />} />
         <Route path="profits" element={<ProfitsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

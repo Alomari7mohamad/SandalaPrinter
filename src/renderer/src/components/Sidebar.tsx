@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, PanelRightClose, Plus, Settings, ShoppingBasket, Tags, UserRound } from 'lucide-react'
+import { BookOpenText, Boxes, ChartNoAxesCombined, ClipboardList, House, PackageOpen, PanelRightClose, Plus, Settings, ShoppingBasket, Tags, UserRound } from 'lucide-react'
 import sandalaLogo from '../assets/sandala-logo.png'
 import sandalaIcon from '../assets/sandala-icon.png'
 
 const sections = [
   { label: 'العمل اليومي', items: [['/', 'الرئيسية', House], ['/orders', 'الطلبات', ClipboardList]] },
-  { label: 'المنتجات والتشغيل', items: [['/services', 'الخدمات والمنتجات', PackageOpen], ['/pricing', 'الأسعار', Tags], ['/inventory', 'المخزون', Boxes], ['/shortages', 'النواقص والطلبيات', ShoppingBasket]] },
+  { label: 'المنتجات والتشغيل', items: [['/services', 'الخدمات والمنتجات', PackageOpen], ['/pricing', 'الأسعار', Tags], ['/book-printing', 'طباعة الكتب', BookOpenText], ['/inventory', 'المخزون', Boxes], ['/shortages', 'النواقص والطلبيات', ShoppingBasket]] },
   { label: 'التحليل والنظام', items: [['/profits', 'الأرباح', ChartNoAxesCombined], ['/settings', 'الإعدادات', Settings]] },
 ] as const
 
