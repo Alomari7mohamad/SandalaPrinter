@@ -28,7 +28,7 @@ export const printingInventoryDefinitions: PrintingInventoryDefinition[] = [
 ]
 
 const seedVersionKey = 'seed.printingInventoryVersion'
-const seedVersion = '1'
+const seedVersion = '2'
 
 export function seedPrintingInventory(database: Database.Database): void {
   const currentVersion = database.prepare('SELECT value FROM app_settings WHERE key=?').pluck().get(seedVersionKey)
