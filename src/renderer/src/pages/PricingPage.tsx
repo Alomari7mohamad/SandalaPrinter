@@ -1,4 +1,4 @@
-import { AlertTriangle, Calculator, Edit3, Plus, Save, Trash2 } from 'lucide-react'
+import { AlertTriangle, Calculator, CircleDollarSign, Edit3, Eye, EyeOff, Layers3, Plus, Save, Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { ServiceDto, ServiceInput } from '../../../shared/contracts'
@@ -23,6 +23,8 @@ export function PricingPage() {
   const [error, setError] = useState('')
   const [editingRule, setEditingRule] = useState<PriceRule | 'new' | null>(null)
   const [quantity, setQuantity] = useState('100')
+  const [serviceSearch, setServiceSearch] = useState('')
+  const [showCalculationDetails, setShowCalculationDetails] = useState(false)
   const [result, setResult] = useState<PricingResult | null>(null)
   const [calculating, setCalculating] = useState(false)
   const selectedId = params.get('service') ?? services[0]?.id ?? ''
@@ -39,6 +41,11 @@ export function PricingPage() {
   }, [services])
   const selectedCategoryKey = selected ? categoryKey(selected) : serviceGroups[0]?.key ?? ''
   const categoryServices = serviceGroups.find((group) => group.key === selectedCategoryKey)?.services ?? []
+  const visibleCategoryServices = useMemo(() => {
+    const query = serviceSearch.trim().toLocaleLowerCase('ar')
+    if (!query) return categoryServices
+    return categoryServices.filter((service) => `${service.nameAr} ${service.nameHe ?? ''} ${service.code ?? ''}`.toLocaleLowerCase('ar').includes(query))
+  }, [categoryServices, serviceSearch])
   const [cost, setCost] = useState<number | null>(null)
   const [savingCost, setSavingCost] = useState(false)
 
@@ -71,19 +78,27 @@ export function PricingPage() {
   return <div className="page pricing-page">
     <PageHeader title="الأسعار" subtitle="عدّل التكلفة وقواعد البيع واختبر أي كمية مباشرة" />
     {error && <div className="alert error">{error}</div>}
-    {services.length === 0 ? <div className="panel table-state">لا توجد خدمات. أضف خدمة أولًا.</div> : <div className="pricing-layout">
-      <aside className="panel service-picker">
-        <div className="service-picker-heading"><h2>اختيار الخدمة</h2><p>اختر الفئة أولًا، ثم اختر الخدمة المطلوبة.</p></div>
-        <label>الفئة<select value={selectedCategoryKey} onChange={(event) => { const firstService = serviceGroups.find((group) => group.key === event.target.value)?.services[0]; if (firstService) setParams({ service: firstService.id }) }}>{serviceGroups.map((group) => <option key={group.key} value={group.key}>{group.label}</option>)}</select></label>
-        <label>الخدمة<select value={selectedId} onChange={(event) => setParams({ service: event.target.value })}>{categoryServices.map((service) => <option key={service.id} value={service.id}>{service.nameAr}</option>)}</select></label>
-        {selected && <div className="selected-service-card"><span>الخدمة المحددة</span><strong>{selected.nameAr}</strong><small>{selected.pricingRulesCount} قواعد سعر</small></div>}
-      </aside>
-      {selected && <div className="pricing-content">
-        <section className="panel service-cost-card"><div><span className="eyebrow">معلومات الخدمة</span><h2>{selected.nameAr}</h2><p>{[selected.categoryName, selected.paperType, selected.size, selected.colorMode, selected.coverage].filter(Boolean).join(' • ')}</p></div><div className="cost-editor"><label>تكلفة الوحدة<input type="number" min="0" step="0.001" value={cost ?? ''} onChange={(e) => setCost(e.target.value === '' ? null : Number(e.target.value))} /></label><button className="primary-button" disabled={savingCost} onClick={() => void saveCost()}><Save size={17} /> {savingCost ? 'جارٍ الحفظ' : 'حفظ التكلفة'}</button></div></section>
-        <section className="panel rules-panel"><div className="section-title"><div><h2>شرائح التسعير</h2><p>{rules.length} شريحة محفوظة — السعر يتغير تلقائيًا حسب الكمية</p></div><button className="primary-button" onClick={() => setEditingRule('new')}><Plus size={17} /> إضافة شريحة</button></div>{rules.length === 0 ? <div className="table-state"><AlertTriangle size={28} /><span>لا توجد شرائح تسعير لهذه الخدمة.</span></div> : <div className="table-scroll pricing-rules-scroll"><table className="data-table pricing-rules-table"><thead><tr><th>من — إلى</th><th>السعر</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>{rules.map((rule) => <tr key={rule.id}><td><b dir="ltr">{quantityLabel(rule)}</b><small>{ruleNames[rule.ruleType]}</small></td><td dir="ltr">{priceLabel(rule)}</td><td><button className={`badge badge-button ${rule.active ? 'success' : 'muted'}`} onClick={() => void toggleRule(rule)}>{rule.active ? 'نشطة' : 'معطلة'}</button></td><td><div className="row-actions"><button title="تعديل" onClick={() => setEditingRule(rule)}><Edit3 size={16} /></button><button className="danger" title="حذف" onClick={() => void deleteRule(rule)}><Trash2 size={16} /></button></div></td></tr>)}</tbody></table></div>}</section>
-        <section className="panel pricing-tester"><div className="section-title"><div><span className="eyebrow">أداة تطوير وتشغيل</span><h2>تجربة التسعير</h2></div><Calculator size={24} /></div><div className="tester-form"><label>الكمية<input type="number" inputMode="numeric" min="1" step="1" value={quantity} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setQuantity(event.target.value)} /></label><div className={`automatic-calculation-status${calculating ? ' calculating' : ''}`}>{calculating ? 'جارٍ الحساب...' : 'يتم الحساب تلقائيًا'}</div></div>{result && <div className={`pricing-result ${result.requiresManualPricing ? 'manual' : ''}`}>{result.requiresManualPricing ? <div className="manual-warning"><AlertTriangle size={24} /><div><b>لا توجد قاعدة سعر محددة لهذه الكمية.</b><span>يلزم إدخال السعر يدويًا.</span></div></div> : <div className="result-grid"><div><span>سعر الوحدة المستخدم</span><b>{money(result.unitSalePrice)}</b></div><div><span>سعر البيع</span><b>{money(result.salePrice)}</b></div><div><span>التكلفة</span><b>{money(result.cost)}</b></div><div><span>الربح</span><b className={(result.profit ?? 0) < 0 ? 'negative' : 'positive'}>{money(result.profit)}</b></div><div><span>هامش الربح</span><b>{result.profitMargin?.toFixed(2)}%</b></div></div>}{result.warnings.filter((warning) => !warning.startsWith('لا توجد') && !warning.startsWith('يلزم')).map((warning) => <p className="result-warning" key={warning}>{warning}</p>)}</div>}</section>
-      </div>}
-    </div>}
+    {services.length === 0 ? <div className="panel table-state">لا توجد خدمات. أضف خدمة أولًا.</div> : <>
+      <section className="panel pricing-selector-panel">
+        <div className="pricing-selector-heading"><span><Layers3 size={20} /></span><div><h2>حدد الخدمة التي تريد تسعيرها</h2><p>اختر الفئة أولًا، ثم ابحث أو اختر المنتج أو الخدمة.</p></div></div>
+        <div className="pricing-selector-fields">
+          <label><span><b>1</b> الفئة</span><select value={selectedCategoryKey} onChange={(event) => { setServiceSearch(''); const firstService = serviceGroups.find((group) => group.key === event.target.value)?.services[0]; if (firstService) setParams({ service: firstService.id }) }}>{serviceGroups.map((group) => <option key={group.key} value={group.key}>{group.label}</option>)}</select></label>
+          <label className="pricing-service-search"><span><Search size={15} /> بحث داخل الفئة</span><div><Search size={17} /><input value={serviceSearch} onChange={(event) => setServiceSearch(event.target.value)} placeholder="اكتب اسم الخدمة..." /></div></label>
+          <label><span><b>2</b> المنتج أو الخدمة</span><select value={selectedId} onChange={(event) => setParams({ service: event.target.value })}>{visibleCategoryServices.length === 0 && <option value={selectedId}>لا توجد نتائج مطابقة</option>}{visibleCategoryServices.map((service) => <option key={service.id} value={service.id}>{service.nameAr}</option>)}</select></label>
+        </div>
+      </section>
+      {selected && <>
+        <section className="panel pricing-service-overview">
+          <div className="pricing-service-identity"><span className="pricing-service-icon"><CircleDollarSign size={24} /></span><div><span className="eyebrow">الخدمة المحددة</span><h2>{selected.nameAr}</h2><p>{[selected.categoryName, selected.paperType, selected.size, selected.colorMode, selected.coverage].filter(Boolean).join(' • ') || 'لا توجد مواصفات إضافية'}</p></div></div>
+          <div className="pricing-service-stats"><div><span>عدد الشرائح</span><b>{rules.length}</b></div><div><span>وحدة البيع</span><b>{selected.unit || 'وحدة'}</b></div></div>
+          <div className="cost-editor"><label>تكلفة الوحدة<input type="number" min="0" step="0.001" value={cost ?? ''} onChange={(e) => setCost(e.target.value === '' ? null : Number(e.target.value))} /></label><button className="primary-button" disabled={savingCost} onClick={() => void saveCost()}><Save size={17} /> {savingCost ? 'جارٍ الحفظ' : 'حفظ التكلفة'}</button></div>
+        </section>
+        <div className="pricing-workspace-grid">
+          <section className="panel pricing-rule-editor"><div className="section-title"><div><span className="eyebrow">قواعد البيع</span><h2>شرائح الأسعار</h2><p>{rules.length} شريحة محفوظة — طبّق سعرًا مختلفًا لكل نطاق كمية.</p></div><button className="primary-button" onClick={() => setEditingRule('new')}><Plus size={17} /> إضافة شريحة</button></div>{rules.length === 0 ? <div className="table-state"><AlertTriangle size={28} /><span>لا توجد شرائح تسعير لهذه الخدمة.</span></div> : <div className="pricing-rule-list">{rules.map((rule, index) => <article className={`pricing-rule-card${rule.active ? '' : ' disabled'}`} key={rule.id}><div className="pricing-rule-order">{index + 1}</div><div className="pricing-rule-range"><span>نطاق الكمية</span><b dir="ltr">{quantityLabel(rule)}</b><small>{ruleNames[rule.ruleType]}</small></div><div className="pricing-rule-price"><span>السعر داخل الشريحة</span><b dir="ltr">{priceLabel(rule)}</b></div><button className={`pricing-rule-status ${rule.active ? 'active' : ''}`} onClick={() => void toggleRule(rule)}><span />{rule.active ? 'نشطة' : 'معطلة'}</button><div className="pricing-rule-actions"><button title="تعديل الشريحة" onClick={() => setEditingRule(rule)}><Edit3 size={17} /><span>تعديل</span></button><button className="danger" title="حذف الشريحة" onClick={() => void deleteRule(rule)}><Trash2 size={17} /></button></div></article>)}</div>}</section>
+          <aside className="panel pricing-live-calculator"><div className="section-title"><div><span className="eyebrow">حساب فوري</span><h2>جرّب أي كمية</h2><p>يتحدث السعر مباشرة عند تغيير الكمية.</p></div><Calculator size={24} /></div><div className="pricing-calculator-body"><label className="pricing-quantity-field"><span>الكمية المطلوبة</span><input type="number" inputMode="numeric" min="1" step="1" value={quantity} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setQuantity(event.target.value)} /></label><div className={`automatic-calculation-status${calculating ? ' calculating' : ''}`}>{calculating ? 'جارٍ الحساب...' : 'الحساب التلقائي فعال'}</div>{result && <div className={`pricing-result ${result.requiresManualPricing ? 'manual' : ''}`}>{result.requiresManualPricing ? <div className="manual-warning"><AlertTriangle size={24} /><div><b>لا توجد قاعدة لهذه الكمية</b><span>أضف شريحة تغطي هذه الكمية.</span></div></div> : <><div className="pricing-sale-highlight"><span>السعر المحسوب</span><b>{money(result.salePrice)}</b><small>سعر الوحدة المستخدم: {money(result.unitSalePrice)}</small></div><button type="button" className="calculation-details-toggle" onClick={() => setShowCalculationDetails((current) => !current)}>{showCalculationDetails ? <EyeOff size={16} /> : <Eye size={16} />}{showCalculationDetails ? 'إخفاء التكلفة والربح' : 'إظهار التكلفة والربح'}</button>{showCalculationDetails && <div className="pricing-detail-list"><div><span>التكلفة</span><b>{money(result.cost)}</b></div><div><span>الربح</span><b className={(result.profit ?? 0) < 0 ? 'negative' : 'positive'}>{money(result.profit)}</b></div><div><span>هامش الربح</span><b>{result.profitMargin?.toFixed(2)}%</b></div></div>}</>}{result.warnings.filter((warning) => !warning.startsWith('لا توجد') && !warning.startsWith('يلزم')).map((warning) => <p className="result-warning" key={warning}>{warning}</p>)}</div>}</div></aside>
+        </div>
+      </>}
+    </>}
     {selected && editingRule && <RuleDialog serviceId={selected.id} fixedQuantity={usesFixedQuantities(selected)} rule={editingRule === 'new' ? undefined : editingRule} onClose={() => setEditingRule(null)} onSaved={(saved) => { const isNewRule = !rules.some((row) => row.id === saved.id); setRules((rows) => rows.some((row) => row.id === saved.id) ? rows.map((row) => row.id === saved.id ? saved : row) : [...rows, saved]); if (isNewRule) changeRuleCount(saved.serviceId, 1); setEditingRule(null); setResult(null); window.dispatchEvent(new Event('sandala:catalog-changed')) }} />}
   </div>
 }
