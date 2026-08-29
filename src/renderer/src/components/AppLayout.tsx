@@ -1,10 +1,11 @@
-import { PanelRightOpen } from 'lucide-react'
+import { CircleCheck, PanelRightOpen, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { UpdateNotification } from './UpdateNotification'
 
 export function AppLayout() {
+  const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('sandala.sidebar.open') !== 'false')
   const toggleSidebar = () => setSidebarOpen((current) => {
     const next = !current
@@ -21,7 +22,18 @@ export function AppLayout() {
           <span>القائمة</span>
         </button>
       </aside>}
-      <main className="main-content"><UpdateNotification /><Outlet /></main>
+      <main className="main-content">
+        <div className="workspace-bar">
+          <div><span className="workspace-status"><CircleCheck size={15} /> النظام جاهز</span><span className="workspace-context">{routeContext[location.pathname] ?? 'إدارة المطبعة'}</span></div>
+          {location.pathname !== '/new-order' && <Link className="workspace-new-order" to="/new-order"><Plus size={17} /> طلب جديد</Link>}
+        </div>
+        <UpdateNotification /><Outlet />
+      </main>
     </div>
   )
+}
+
+const routeContext: Record<string, string> = {
+  '/': 'مركز المتابعة', '/new-order': 'إنشاء طلب', '/orders': 'إدارة الطلبات', '/services': 'دليل الخدمات والمنتجات',
+  '/pricing': 'إدارة التسعير', '/inventory': 'إدارة المخزون', '/shortages': 'المشتريات والنواقص', '/profits': 'التحليل المالي', '/settings': 'إعدادات النظام',
 }
