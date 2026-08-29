@@ -19,7 +19,7 @@ export function ServicesPage() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
-  const [status, setStatus] = useState('all')
+  const [status, setStatus] = useState('true')
   const [editing, setEditing] = useState<ServiceDto | null | 'new'>(null)
   const [addingCategory, setAddingCategory] = useState(false)
   const [deletingId, setDeletingId] = useState('')

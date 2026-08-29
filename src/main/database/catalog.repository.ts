@@ -59,12 +59,12 @@ export function saveService(input: ServiceInput): ServiceDto {
     const linked = database.prepare('SELECT id FROM inventory_items WHERE catalog_service_id = ?').get(id) as { id: string } | undefined
     if (input.itemType === 'PRODUCT') {
       if (linked) {
-        database.prepare(`UPDATE inventory_items SET name=?, sku=?, unit=?, purchase_cost=?, supplier_id=?, reorder_point=?, minimum_order_quantity=?, active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-          .run(input.nameAr, input.code, input.unit, input.unitCost ?? 0, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.active ? 1 : 0, linked.id)
+        database.prepare(`UPDATE inventory_items SET name=?, sku=?, unit=?, purchase_cost=?, supplier_id=?, category_id=?, reorder_point=?, minimum_order_quantity=?, active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .run(input.nameAr, input.code, input.unit, input.unitCost ?? 0, input.supplierId, input.categoryId, input.reorderPoint, input.minimumOrderQuantity, input.active ? 1 : 0, linked.id)
       } else {
-        database.prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity, low_stock_threshold, purchase_cost, supplier_id, reorder_point, minimum_order_quantity, catalog_service_id, active)
-          VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(randomUUID(), input.nameAr, input.code, input.unit, input.reorderPoint, input.unitCost ?? 0, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, id, input.active ? 1 : 0)
+        database.prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity, low_stock_threshold, purchase_cost, supplier_id, category_id, reorder_point, minimum_order_quantity, catalog_service_id, active)
+          VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          .run(randomUUID(), input.nameAr, input.code, input.unit, input.reorderPoint, input.unitCost ?? 0, input.supplierId, input.categoryId, input.reorderPoint, input.minimumOrderQuantity, id, input.active ? 1 : 0)
       }
     } else if (linked) {
       database.prepare("DELETE FROM purchase_requests WHERE inventory_item_id = ?").run(linked.id)
@@ -77,8 +77,12 @@ export function saveService(input: ServiceInput): ServiceDto {
 }
 
 export function setServiceActive(id: string, active: boolean): void {
-  const result = getSqlite().prepare('UPDATE services SET active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(active ? 1 : 0, id)
-  if (result.changes === 0) throw new Error('الخدمة المطلوبة غير موجودة.')
+  const database = getSqlite()
+  database.transaction(() => {
+    const result = database.prepare('UPDATE services SET active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(active ? 1 : 0, id)
+    if (result.changes === 0) throw new Error('الخدمة المطلوبة غير موجودة.')
+    database.prepare('UPDATE inventory_items SET active=?, updated_at=CURRENT_TIMESTAMP WHERE catalog_service_id=?').run(active ? 1 : 0, id)
+  })()
 }
 
 export function deleteService(id: string): void {

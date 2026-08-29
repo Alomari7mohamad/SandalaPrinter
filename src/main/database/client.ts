@@ -21,6 +21,7 @@ import { seedInventoryItems } from './inventory.seed'
 import { seedGhassanProducts } from './ghassan-products.seed'
 import { seedPrintingInventory } from './printing-inventory.seed'
 import { recoverLegacyInventoryData } from './legacy-data-recovery'
+import { seedCatalogInventorySync } from './catalog-inventory-sync.seed'
 
 let sqlite: Database.Database | undefined
 
@@ -76,6 +77,7 @@ export function initializeDatabase() {
   seedGhassanProducts(sqlite)
   seedPrintingInventory(sqlite)
   recoverLegacyInventoryData(sqlite, join(app.getPath('appData'), 'oh-printer-manager', 'data', 'oh-printer-manager.db'), databasePath)
+  seedCatalogInventorySync(sqlite)
   return drizzle(sqlite, { schema })
 }
 

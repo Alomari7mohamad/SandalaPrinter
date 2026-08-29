@@ -63,21 +63,29 @@ export function updateInventorySettings(input: InventorySettingsInput): Inventor
 }
 
 export function createInventoryItem(input: InventoryItemInput): InventoryItemDto {
-  const id=randomUUID()
-  getSqlite().prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity, low_stock_threshold, purchase_cost, supplier_id, reorder_point, minimum_order_quantity, category_id, package_enabled, package_name, units_per_package, package_price, package_notes, reorder_package_count, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT id FROM service_categories WHERE name_ar='طباعة' AND active=1 LIMIT 1), ?, ?, ?, ?, ?, ?, 1)`).run(id, input.name, input.sku, input.unit, input.quantity, input.reorderPoint, input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount)
+  const database=getSqlite(),id=randomUUID(),serviceId=`inventory-catalog-${id}`,serviceCode=`STOCK_${id.replace(/-/g,'').slice(0,16).toUpperCase()}`
+  database.transaction(()=>{
+    database.prepare(`INSERT INTO services (id,category_id,code,name_ar,name_he,material_type,size,color_mode,coverage,unit,item_type,supplier_id,reorder_point,minimum_order_quantity,cost_type,unit_cost,cost_batch_size,cost_calculation,sale_calculation,active,notes)
+      VALUES (?,?,?, ?,NULL,NULL,NULL,NULL,NULL,?,'PRODUCT',?,?,?,'PER_UNIT',?,NULL,'COST_STRATEGY','PRICING_RULE',1,'منتج موحّد مع المخزون.')`)
+      .run(serviceId,input.categoryId,serviceCode,input.name,input.unit,input.supplierId,input.reorderPoint,input.minimumOrderQuantity,input.purchaseCost)
+    database.prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity, low_stock_threshold, purchase_cost, supplier_id, reorder_point, minimum_order_quantity, category_id, catalog_service_id, package_enabled, package_name, units_per_package, package_price, package_notes, reorder_package_count, active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`).run(id, input.name, input.sku, input.unit, input.quantity, input.reorderPoint, input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.categoryId, serviceId, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount)
+  })()
   return getInventoryItem(id)!
 }
 
 export function deleteInventoryItem(id: string): void {
   const database = getSqlite()
   database.transaction(() => {
-    const item = database.prepare('SELECT id FROM inventory_items WHERE id=? AND active=1').get(id)
+    const item = database.prepare('SELECT id, catalog_service_id catalogServiceId FROM inventory_items WHERE id=? AND active=1').get(id) as { id: string; catalogServiceId: string | null } | undefined
     if (!item) throw new Error('منتج المخزون المطلوب غير موجود.')
 
     database.prepare('DELETE FROM purchase_requests WHERE inventory_item_id=?').run(id)
+    if (item.catalogServiceId) {
+      database.prepare('UPDATE services SET active=0, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(item.catalogServiceId)
+    }
     const result = database.prepare(`UPDATE inventory_items
-      SET active=0, catalog_service_id=NULL, supplier_id=NULL, updated_at=CURRENT_TIMESTAMP
+      SET active=0, supplier_id=NULL, updated_at=CURRENT_TIMESTAMP
       WHERE id=? AND active=1`).run(id)
     if (result.changes === 0) throw new Error('تعذر حذف منتج المخزون.')
   })()

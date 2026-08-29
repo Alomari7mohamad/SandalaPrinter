@@ -49,7 +49,7 @@ export function PricingPage() {
   const [cost, setCost] = useState<number | null>(null)
   const [savingCost, setSavingCost] = useState(false)
 
-  const loadServices = () => window.desktopApi.catalog.listServices().then((rows) => { setServices(rows); if (!params.get('service') && rows[0]) setParams({ service: rows[0].id }, { replace: true }) }).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل الخدمات.'))).finally(() => setLoading(false))
+  const loadServices = () => window.desktopApi.catalog.listServices().then((rows) => { const activeRows = rows.filter((service) => service.active); setServices(activeRows); if (!params.get('service') && activeRows[0]) setParams({ service: activeRows[0].id }, { replace: true }) }).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل الخدمات.'))).finally(() => setLoading(false))
   useEffect(() => {
     void loadServices()
   }, [])

@@ -183,7 +183,7 @@ export interface InventoryAdjustmentInput {
   notes: string | null
 }
 export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
-export interface InventoryItemInput { name: string; sku: string | null; unit: string; quantity: number; purchaseCost: number; supplierId: string; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
+export interface InventoryItemInput { name: string; sku: string | null; unit: string; quantity: number; purchaseCost: number; supplierId: string; categoryId: string; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
 
 export interface SupplierDto { id: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null; active: boolean; productCount: number }
 export interface SupplierInput { id?: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null }
