@@ -11,7 +11,7 @@ export function calculateDraftTotals(items: DraftFinancialItem[], discount: Draf
   const safeValue = new Decimal(Number.isFinite(discount.value) ? Math.max(0, discount.value) : 0)
   const requestedDiscount = discount.type === 'PERCENT'
     ? subtotal.times(Decimal.min(safeValue, 100)).dividedBy(100)
-    : discount.type === 'FIXED' ? safeValue : new Decimal(0)
+    : discount.type === 'FIXED' ? Decimal.min(safeValue.floor(), subtotal.times(0.1).floor()) : new Decimal(0)
   const discountAmount = Decimal.min(requestedDiscount, subtotal).toDecimalPlaces(4)
   const total = subtotal.minus(discountAmount)
   const profit = total.minus(totalCost)

@@ -156,10 +156,27 @@ export function NewOrderPage() {
   const typeOptions = useMemo(() => [...new Set((selectedGroup?.services ?? []).map(serviceTypeLabel))], [selectedGroup])
   const effectiveSelectedType = selectedType || (typeOptions.length === 1 ? typeOptions[0]! : '')
   const servicesForType = useMemo(() => (selectedGroup?.services ?? []).filter((service) => serviceTypeLabel(service) === effectiveSelectedType), [selectedGroup, effectiveSelectedType])
-  const numericDiscountValue = discountType === 'PERCENT' ? Math.min(Number(discountValue), 100) : Number(discountValue)
+  const subtotalBeforeDiscount = useMemo(() => calculateDraftTotals(items.map((item) => ({ salePrice: item.pricing.salePrice ?? 0, cost: item.pricing.cost ?? 0 }))).subtotal, [items])
+  const maximumFixedDiscount = Math.floor(subtotalBeforeDiscount * 0.1)
+  const parsedDiscountValue = Number(discountValue)
+  const numericDiscountValue = discountType === 'PERCENT' ? Math.min(parsedDiscountValue, 100) : Math.min(Math.trunc(parsedDiscountValue), maximumFixedDiscount)
   const effectiveDiscountType: OrderDiscountType = Number.isFinite(numericDiscountValue) && numericDiscountValue > 0 ? discountType : 'NONE'
   const totals = useMemo(() => calculateDraftTotals(items.map((item) => ({ salePrice: item.pricing.salePrice ?? 0, cost: item.pricing.cost ?? 0 })), { type: effectiveDiscountType, value: Number.isFinite(numericDiscountValue) ? numericDiscountValue : 0 }), [items, effectiveDiscountType, numericDiscountValue])
   const canAdd = Boolean(selected && pricing && !pricing.requiresManualPricing && pricing.salePrice !== null && pricing.cost !== null)
+  const changeDiscountValue = (value: string) => {
+    if (value === '') { setDiscountValue(''); return }
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+    const limitedValue = discountType === 'FIXED'
+      ? Math.min(Math.max(0, Math.trunc(numericValue)), maximumFixedDiscount)
+      : Math.min(Math.max(0, numericValue), 100)
+    setDiscountValue(String(limitedValue))
+  }
+  const selectFixedDiscount = () => {
+    setDiscountType('FIXED')
+    const current = Number(discountValue)
+    setDiscountValue(Number.isFinite(current) && current > 0 ? String(Math.min(Math.trunc(current), maximumFixedDiscount)) : '')
+  }
 
   const selectGroup = (groupId: string) => {
     const group = serviceGroups.find((item) => item.id === groupId)
@@ -256,7 +273,7 @@ export function NewOrderPage() {
         </section>
       </div>
 
-      <aside className="panel order-summary live-summary"><h2>إجمالي الطلب</h2><div className="summary-row"><span>عدد الخدمات</span><b>{formatNumber(items.length)}</b></div><section className="manager-discount-card"><div className="manager-discount-heading"><b>خصم المدير</b><button type="button" onClick={() => { setDiscountType('PERCENT'); setDiscountValue('20') }}>خصم الطلاب 20%</button></div><div className="discount-mode-switch"><button type="button" className={discountType === 'FIXED' ? 'active' : ''} onClick={() => setDiscountType('FIXED')}>قيمة بالشواقل</button><button type="button" className={discountType === 'PERCENT' ? 'active' : ''} onClick={() => setDiscountType('PERCENT')}>نسبة مئوية</button></div><label><span>{discountType === 'FIXED' ? 'قيمة الخصم' : 'نسبة الخصم'}</span><div><input type="number" min="0" max={discountType === 'PERCENT' ? 100 : undefined} step="0.01" value={discountValue} onChange={(event) => setDiscountValue(event.target.value)} placeholder="0" /><b>{discountType === 'FIXED' ? '₪' : '%'}</b></div></label></section><div className="summary-row"><span>قبل الخصم</span><b>{formatCurrency(totals.subtotal)}</b></div><div className="summary-row discount-total-row"><span>الخصم</span><b>- {formatCurrency(totals.discountAmount)}</b></div><div className="summary-row final-order-total"><span>السعر النهائي</span><b>{formatCurrency(totals.total)}</b></div><button className="primary-button full save-order-button" disabled={items.length === 0 || saving} onClick={() => void saveOrder()}>{saving ? <><LoaderCircle className="spin" size={18} /> جارٍ التأكيد...</> : 'تأكيد الطلب'}</button><small>تُحفظ المسودة تلقائيًا عند الانتقال بين الصفحات. يُخصم المخزون عند التأكيد، وتُحتسب المبيعات والأرباح بعد تسجيل الدفع.</small></aside>
+      <aside className="panel order-summary live-summary"><h2>إجمالي الطلب</h2><div className="summary-row"><span>عدد الخدمات</span><b>{formatNumber(items.length)}</b></div><section className="manager-discount-card"><div className="manager-discount-heading"><b>خصم المدير</b><button type="button" onClick={() => { setDiscountType('PERCENT'); setDiscountValue('20') }}>خصم الطلاب 20%</button></div><div className="discount-mode-switch"><button type="button" className={discountType === 'FIXED' ? 'active' : ''} onClick={selectFixedDiscount}>قيمة بالشواقل</button><button type="button" className={discountType === 'PERCENT' ? 'active' : ''} onClick={() => setDiscountType('PERCENT')}>نسبة مئوية</button></div><label><span>{discountType === 'FIXED' ? 'قيمة الخصم' : 'نسبة الخصم'}</span><div><input type="number" min="0" max={discountType === 'PERCENT' ? 100 : maximumFixedDiscount} step={discountType === 'FIXED' ? 1 : 0.01} disabled={discountType === 'FIXED' && items.length === 0} value={discountValue} onChange={(event) => changeDiscountValue(event.target.value)} placeholder="0" /><b>{discountType === 'FIXED' ? '₪' : '%'}</b></div>{discountType === 'FIXED' && <small>الحد الأعلى 10% من الإجمالي: {formatCurrency(maximumFixedDiscount, 0)}</small>}</label></section><div className="summary-row"><span>قبل الخصم</span><b>{formatCurrency(totals.subtotal)}</b></div><div className="summary-row discount-total-row"><span>الخصم</span><b>- {formatCurrency(totals.discountAmount)}</b></div><div className="summary-row final-order-total"><span>السعر النهائي</span><b>{formatCurrency(totals.total)}</b></div><button className="primary-button full save-order-button" disabled={items.length === 0 || saving} onClick={() => void saveOrder()}>{saving ? <><LoaderCircle className="spin" size={18} /> جارٍ التأكيد...</> : 'تأكيد الطلب'}</button><small>تُحفظ المسودة تلقائيًا عند الانتقال بين الصفحات. يُخصم المخزون عند التأكيد، وتُحتسب المبيعات والأرباح بعد تسجيل الدفع.</small></aside>
     </div>
   </div>
 }

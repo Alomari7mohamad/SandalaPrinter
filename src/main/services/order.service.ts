@@ -79,9 +79,12 @@ export const orderService = {
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'بيانات الطلب غير صحيحة.')
     const preparedItems = parsed.data.items.map((item) => prepareItem(item.serviceId, item.quantity))
     const subtotal = preparedItems.reduce((sum, item) => sum.plus(item.salePrice), new Decimal(0)).toNumber()
+    const maximumFixedDiscount = Math.floor(subtotal * 0.1)
+    if (parsed.data.discountType === 'FIXED' && !Number.isInteger(parsed.data.discountValue)) throw new Error('خصم الشواقل يجب أن يكون رقمًا صحيحًا دون كسور.')
+    if (parsed.data.discountType === 'FIXED' && parsed.data.discountValue > maximumFixedDiscount) throw new Error(`خصم الشواقل لا يمكن أن يتجاوز 10% من إجمالي الطلب (${maximumFixedDiscount} ₪).`)
     const discountValue = parsed.data.discountType === 'PERCENT'
       ? Math.min(parsed.data.discountValue, 100)
-      : parsed.data.discountType === 'FIXED' ? Math.min(parsed.data.discountValue, subtotal) : 0
+      : parsed.data.discountType === 'FIXED' ? parsed.data.discountValue : 0
     const totals = calculateDraftTotals(preparedItems.map((item) => ({ salePrice: item.salePrice, cost: item.cost })), { type: parsed.data.discountType, value: discountValue })
     const database = getSqlite()
     const id = randomUUID()
