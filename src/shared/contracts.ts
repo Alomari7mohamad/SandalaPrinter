@@ -197,18 +197,18 @@ export interface PurchaseRequestDto { id: string; inventoryItemId: string; itemN
 export interface PurchaseRequestInput { inventoryItemId: string; requestedQuantity: number; unitPrice: number }
 
 export interface ReportRangeInput { from: string; to: string }
-export interface WorkLogInput { workDate: string; regularHours: number; overtimeHours: number; hourlyRate: number; overtimePercentage: number }
+export interface WorkLogInput { workDate: string; hours: number; hourlyRate: number; additionPercentage: number }
 export interface WorkLogDto extends WorkLogInput {
   id: string
-  regularPay: number
-  overtimePay: number
+  basePay: number
+  additionPay: number
   totalPay: number
   createdAt: string
   updatedAt: string
 }
 export interface WorkLogReportDto {
   range: ReportRangeInput
-  summary: { workDays: number; regularHours: number; overtimeHours: number; totalPay: number }
+  summary: { workDays: number; totalHours: number; totalPay: number }
   rows: WorkLogDto[]
 }
 export interface ReportSummaryDto {

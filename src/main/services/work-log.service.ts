@@ -5,12 +5,10 @@ import * as repository from '../database/work-log.repository'
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'التاريخ غير صالح.')
 const inputSchema = z.object({
   workDate: date,
-  regularHours: z.number().min(0).max(24).finite(),
-  overtimeHours: z.number().min(0).max(24).finite(),
-  hourlyRate: z.number().positive('أدخل قيمة صحيحة لأجر الساعة.').max(100000).finite(),
-  overtimePercentage: z.number().min(0).max(1000).finite()
-}).refine((value) => value.regularHours + value.overtimeHours > 0, { message: 'أدخل عدد ساعات العمل العادية أو الإضافية.' })
-  .refine((value) => value.regularHours + value.overtimeHours <= 24, { message: 'مجموع ساعات اليوم لا يمكن أن يتجاوز 24 ساعة.' })
+  hours: z.number().int('عدد الساعات يجب أن يكون رقمًا صحيحًا.').min(1).max(24).finite(),
+  hourlyRate: z.number().int('أجر الساعة يجب أن يكون رقمًا صحيحًا.').positive('أدخل قيمة صحيحة لأجر الساعة.').max(100000).finite(),
+  additionPercentage: z.number().min(0).max(1000).finite()
+})
 
 const rangeSchema = z.object({ from: date, to: date }).refine((value) => value.from <= value.to, { message: 'تاريخ البداية يجب أن يسبق تاريخ النهاية.' })
 

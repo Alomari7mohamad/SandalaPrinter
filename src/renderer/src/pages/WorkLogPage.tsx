@@ -18,10 +18,9 @@ const shiftMonth = (month: string, amount: number) => {
 
 export function WorkLogPage() {
   const [workDate, setWorkDate] = useState(today)
-  const [regularHours, setRegularHours] = useState('')
-  const [overtimeHours, setOvertimeHours] = useState('')
+  const [hours, setHours] = useState('')
   const [hourlyRate, setHourlyRate] = useState(() => localStorage.getItem('sandala.work-log.hourly-rate') ?? '')
-  const [overtimePercentage, setOvertimePercentage] = useState(() => localStorage.getItem('sandala.work-log.overtime-percentage') ?? '50')
+  const [additionPercentage, setAdditionPercentage] = useState(() => localStorage.getItem('sandala.work-log.addition-percentage') ?? localStorage.getItem('sandala.work-log.overtime-percentage') ?? '0')
   const [viewMode, setViewMode] = useState<ViewMode>('MONTH')
   const [selectedMonth, setSelectedMonth] = useState(toInputMonth(new Date()))
   const initialRange = currentMonthRange()
@@ -34,7 +33,7 @@ export function WorkLogPage() {
   const [success, setSuccess] = useState('')
 
   const numeric = (value: string) => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0
-  const pay = useMemo(() => calculateWorkPay({ regularHours: numeric(regularHours), overtimeHours: numeric(overtimeHours), hourlyRate: numeric(hourlyRate), overtimePercentage: numeric(overtimePercentage) }), [regularHours, overtimeHours, hourlyRate, overtimePercentage])
+  const pay = useMemo(() => calculateWorkPay({ hours: numeric(hours), hourlyRate: numeric(hourlyRate), additionPercentage: numeric(additionPercentage) }), [hours, hourlyRate, additionPercentage])
   const activeRange: ReportRangeInput = viewMode === 'MONTH' ? monthRange(selectedMonth, selectedMonth) : { from: customFrom, to: customTo }
 
   const load = async (range: ReportRangeInput = activeRange) => {
@@ -48,10 +47,10 @@ export function WorkLogPage() {
   const save = async () => {
     setSaving(true); setError(''); setSuccess('')
     try {
-      await window.desktopApi.workLogs.save({ workDate, regularHours: numeric(regularHours), overtimeHours: numeric(overtimeHours), hourlyRate: numeric(hourlyRate), overtimePercentage: numeric(overtimePercentage) })
+      await window.desktopApi.workLogs.save({ workDate, hours: numeric(hours), hourlyRate: numeric(hourlyRate), additionPercentage: numeric(additionPercentage) })
       localStorage.setItem('sandala.work-log.hourly-rate', hourlyRate)
-      localStorage.setItem('sandala.work-log.overtime-percentage', overtimePercentage)
-      setRegularHours(''); setOvertimeHours(''); setSuccess('تم حفظ دوام اليوم والأجر المستحق بنجاح.')
+      localStorage.setItem('sandala.work-log.addition-percentage', additionPercentage)
+      setHours(''); setSuccess('تم حفظ دوام اليوم والأجر المستحق بنجاح.')
       const savedMonth = workDate.slice(0, 7)
       if (viewMode === 'MONTH' && savedMonth !== selectedMonth) setSelectedMonth(savedMonth)
       else await load(activeRange)
@@ -59,8 +58,8 @@ export function WorkLogPage() {
     finally { setSaving(false) }
   }
   const edit = (row: WorkLogDto) => {
-    setWorkDate(row.workDate); setRegularHours(String(row.regularHours)); setOvertimeHours(String(row.overtimeHours));
-    setHourlyRate(String(row.hourlyRate)); setOvertimePercentage(String(row.overtimePercentage)); setSuccess('يمكنك الآن تعديل السجل ثم الضغط على حفظ.')
+    setWorkDate(row.workDate); setHours(String(row.hours)); setHourlyRate(String(row.hourlyRate));
+    setAdditionPercentage(String(row.additionPercentage)); setSuccess('يمكنك الآن تعديل السجل ثم الضغط على حفظ.')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -72,21 +71,20 @@ export function WorkLogPage() {
         <div className="section-title"><div><span className="eyebrow">تسجيل يوم عمل</span><h2>محمد وجيه عمري</h2><p>أدخل الساعات، وسيُحسب أجر اليوم مباشرة قبل الحفظ.</p></div><UserRound size={23} /></div>
         <div className="work-entry-form">
           <label className="work-date-field">تاريخ العمل<input type="date" value={workDate} max={today()} onChange={(event) => setWorkDate(event.target.value)} /></label>
-          <label>الساعات العادية<input type="number" min="0" max="24" step="0.25" value={regularHours} onChange={(event) => setRegularHours(event.target.value)} placeholder="مثال: 8" /></label>
-          <label>الساعات الإضافية<input type="number" min="0" max="24" step="0.25" value={overtimeHours} onChange={(event) => setOvertimeHours(event.target.value)} placeholder="مثال: 2" /></label>
-          <label>أجر الساعة<input type="number" min="0" step="0.01" value={hourlyRate} onChange={(event) => setHourlyRate(event.target.value)} placeholder="₪ 0.00" /></label>
-          <label>زيادة الأجر الإضافي<input type="number" min="0" step="1" value={overtimePercentage} onChange={(event) => setOvertimePercentage(event.target.value)} placeholder="50" /><span className="field-suffix">%</span></label>
+          <label>عدد الساعات<input type="number" min="1" max="24" step="1" inputMode="numeric" value={hours} onChange={(event) => setHours(event.target.value)} placeholder="مثال: 8" /></label>
+          <label>أجر الساعة<input type="number" min="1" step="1" inputMode="numeric" value={hourlyRate} onChange={(event) => setHourlyRate(event.target.value)} placeholder="مثال: 20" /></label>
+          <label>نسبة الإضافة على أجر الساعة<input type="number" min="0" step="1" value={additionPercentage} onChange={(event) => setAdditionPercentage(event.target.value)} placeholder="مثال: 50" /><span className="field-suffix">%</span></label>
         </div>
-        <div className="daily-pay-preview"><div><span>أجر الساعات العادية</span><b>{formatCurrency(pay.regularPay)}</b></div><div><span>أجر الساعات الإضافية</span><b>{formatCurrency(pay.overtimePay)}</b></div><div className="daily-pay-total"><span>أجر اليوم المستحق</span><strong>{formatCurrency(pay.totalPay)}</strong></div></div>
-        <button type="button" className="primary-button work-save-button" disabled={saving || !workDate || numeric(regularHours) + numeric(overtimeHours) <= 0 || numeric(hourlyRate) <= 0 || numeric(regularHours) + numeric(overtimeHours) > 24} onClick={() => void save()}>{saving ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}{saving ? 'جارٍ الحفظ...' : 'حفظ دوام اليوم'}</button>
+        <div className="daily-pay-preview"><div><span>أجر الساعة بعد الإضافة</span><b>{formatCurrency(pay.adjustedHourlyRate)}</b></div><div><span>قيمة الإضافة لليوم</span><b>{formatCurrency(pay.additionPay)}</b></div><div className="daily-pay-total"><span>أجر اليوم المستحق</span><strong>{formatCurrency(pay.totalPay)}</strong></div></div>
+        <button type="button" className="primary-button work-save-button" disabled={saving || !workDate || !Number.isInteger(numeric(hours)) || numeric(hours) < 1 || numeric(hours) > 24 || !Number.isInteger(numeric(hourlyRate)) || numeric(hourlyRate) < 1} onClick={() => void save()}>{saving ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}{saving ? 'جارٍ الحفظ...' : 'حفظ دوام اليوم'}</button>
       </section>
 
       <section className="work-summary-column">
         <div className="work-period-toolbar panel"><div className="work-view-switch"><button className={viewMode === 'MONTH' ? 'active' : ''} onClick={() => setViewMode('MONTH')}>حسب الشهر</button><button className={viewMode === 'CUSTOM' ? 'active' : ''} onClick={() => setViewMode('CUSTOM')}>من يوم إلى يوم</button></div>{viewMode === 'MONTH' ? <div className="month-navigator"><button aria-label="الشهر السابق" onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}><ChevronRight size={18} /></button><b>{monthLabel(selectedMonth)}</b><button aria-label="الشهر التالي" disabled={selectedMonth >= toInputMonth(new Date())} onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}><ChevronLeft size={18} /></button></div> : <div className="custom-work-range"><label>من<input type="date" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} /></label><label>إلى<input type="date" value={customTo} onChange={(event) => setCustomTo(event.target.value)} /></label><button className="primary-button" disabled={loading || !customFrom || !customTo || customFrom > customTo} onClick={() => void load({ from: customFrom, to: customTo })}>عرض</button></div>}</div>
-        <div className="work-summary-grid"><div className="panel"><Clock3 /><span>الساعات العادية</span><b>{formatNumber(report?.summary.regularHours ?? 0, 0, 2)}</b></div><div className="panel overtime"><Sparkles /><span>الساعات الإضافية</span><b>{formatNumber(report?.summary.overtimeHours ?? 0, 0, 2)}</b></div><div className="panel"><CalendarClock /><span>أيام العمل</span><b>{formatNumber(report?.summary.workDays ?? 0)}</b></div><div className="panel total"><Coins /><span>إجمالي الأجر المستحق</span><b>{formatCurrency(report?.summary.totalPay ?? 0)}</b></div></div>
+        <div className="work-summary-grid"><div className="panel"><Clock3 /><span>إجمالي ساعات العمل</span><b>{formatNumber(report?.summary.totalHours ?? 0, 0, 2)}</b></div><div className="panel overtime"><Sparkles /><span>متوسط الساعات في اليوم</span><b>{formatNumber(report?.summary.workDays ? report.summary.totalHours / report.summary.workDays : 0, 0, 2)}</b></div><div className="panel"><CalendarClock /><span>أيام العمل</span><b>{formatNumber(report?.summary.workDays ?? 0)}</b></div><div className="panel total"><Coins /><span>إجمالي الأجر المستحق</span><b>{formatCurrency(report?.summary.totalPay ?? 0)}</b></div></div>
       </section>
     </div>
 
-    <section className="panel work-log-list"><div className="section-title"><div><h2>تفاصيل أيام العمل</h2><p>{viewMode === 'MONTH' ? monthLabel(selectedMonth) : `${dateLabel(customFrom)} — ${dateLabel(customTo)}`}</p></div><CalendarClock size={22} /></div>{loading ? <div className="table-state"><LoaderCircle className="spin" size={26} /> جارٍ تحميل السجل...</div> : !report || report.rows.length === 0 ? <div className="empty-state large"><Clock3 size={40} /><b>لا توجد أيام عمل مسجلة</b><span>أدخل ساعات أول يوم عمل من النموذج في أعلى الصفحة.</span></div> : <div className="table-scroll"><table className="data-table work-log-table"><thead><tr><th>التاريخ</th><th>الساعات العادية</th><th>الساعات الإضافية</th><th>أجر الساعة</th><th>نسبة الإضافي</th><th>أجر اليوم</th><th></th></tr></thead><tbody>{report.rows.map((row) => <tr key={row.id}><td><b>{dateLabel(row.workDate)}</b></td><td>{formatNumber(row.regularHours, 0, 2)}</td><td>{formatNumber(row.overtimeHours, 0, 2)}</td><td>{formatCurrency(row.hourlyRate)}</td><td>{formatNumber(row.overtimePercentage, 0, 2)}%</td><td><b>{formatCurrency(row.totalPay)}</b><small>عادي {formatCurrency(row.regularPay)} • إضافي {formatCurrency(row.overtimePay)}</small></td><td><button className="icon-button" title="تعديل اليوم" onClick={() => edit(row)}><Edit3 size={17} /></button></td></tr>)}</tbody></table></div>}</section>
+    <section className="panel work-log-list"><div className="section-title"><div><h2>تفاصيل أيام العمل</h2><p>{viewMode === 'MONTH' ? monthLabel(selectedMonth) : `${dateLabel(customFrom)} — ${dateLabel(customTo)}`}</p></div><CalendarClock size={22} /></div>{loading ? <div className="table-state"><LoaderCircle className="spin" size={26} /> جارٍ تحميل السجل...</div> : !report || report.rows.length === 0 ? <div className="empty-state large"><Clock3 size={40} /><b>لا توجد أيام عمل مسجلة</b><span>أدخل ساعات أول يوم عمل من النموذج في أعلى الصفحة.</span></div> : <div className="table-scroll"><table className="data-table work-log-table"><thead><tr><th>التاريخ</th><th>عدد الساعات</th><th>أجر الساعة</th><th>نسبة الإضافة</th><th>الأجر بعد الإضافة</th><th>أجر اليوم</th><th></th></tr></thead><tbody>{report.rows.map((row) => { const rowPay = calculateWorkPay(row); return <tr key={row.id}><td><b>{dateLabel(row.workDate)}</b></td><td>{formatNumber(row.hours, 0, 2)}</td><td>{formatCurrency(row.hourlyRate)}</td><td>{formatNumber(row.additionPercentage, 0, 2)}%</td><td>{formatCurrency(rowPay.adjustedHourlyRate)}</td><td><b>{formatCurrency(row.totalPay)}</b><small>أساسي {formatCurrency(row.basePay)} • إضافة {formatCurrency(row.additionPay)}</small></td><td><button className="icon-button" title="تعديل اليوم" onClick={() => edit(row)}><Edit3 size={17} /></button></td></tr> })}</tbody></table></div>}</section>
   </div>
 }
