@@ -473,3 +473,64 @@ input:focus, select:focus, textarea:focus { outline: none; }
   .booklet-page { padding: 0 !important; max-width: none; }.booklet-page .page-header { min-height: auto; margin-bottom: 12px; }.booklet-summary { grid-template-columns: repeat(4, 1fr); }
   .booklet-signature { box-shadow: none; }.booklet-sheet { grid-template-columns: 75px repeat(2, 1fr); }
 }
+
+/* Owner work log */
+.work-log-page { max-width: 1480px; }
+.work-log-top-grid { display: grid; grid-template-columns: minmax(470px, 1.08fr) minmax(430px, .92fr); gap: 16px; align-items: stretch; }
+.work-entry-card { overflow: hidden; }
+.work-entry-card .section-title { background: linear-gradient(180deg, #fbfdff, #f7fafc); }
+.work-entry-card .section-title > svg { color: #2479d5; }
+.work-entry-form { padding: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.work-entry-form label { position: relative; display: grid; gap: 7px; color: #4f6674; font-size: 11px; font-weight: 850; }
+.work-entry-form .work-date-field { grid-column: 1 / -1; }
+.work-entry-form input { width: 100%; height: 47px; padding: 0 13px; border: 1px solid #ccd9e3; border-radius: 10px; color: #17384a; background: #fff; font-size: 15px; font-weight: 850; direction: ltr; text-align: center; }
+.work-entry-form input:focus { border-color: #3387df; box-shadow: 0 0 0 4px rgba(35,121,217,.09); }
+.work-entry-form .field-suffix { position: absolute; inset-inline-start: 13px; bottom: 14px; color: #718591; font-size: 13px; font-weight: 900; pointer-events: none; }
+.daily-pay-preview { margin: 0 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; border: 1px solid #dce6ed; border-radius: 12px; overflow: hidden; background: #dce6ed; }
+.daily-pay-preview > div { min-height: 69px; padding: 12px 15px; display: grid; align-content: center; gap: 4px; background: #f9fbfc; }
+.daily-pay-preview span { color: #6d818d; font-size: 10px; font-weight: 800; }
+.daily-pay-preview b { color: #183a4d; font-size: 17px; font-weight: 950; }
+.daily-pay-preview .daily-pay-total { grid-column: 1 / -1; min-height: 77px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #eef7ff, #f7fbff); }
+.daily-pay-total span { color: #24699e; font-size: 11px; }
+.daily-pay-total strong { color: #1169c9; font-size: 26px; font-weight: 950; }
+.work-save-button { min-height: 45px; margin: 15px 18px 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.work-summary-column { min-width: 0; display: grid; grid-template-rows: auto 1fr; gap: 14px; }
+.work-period-toolbar { padding: 14px; display: grid; gap: 13px; }
+.work-view-switch { padding: 3px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; border-radius: 10px; background: #edf1f4; }
+.work-view-switch button { min-height: 36px; border-radius: 8px; color: #667b88; background: transparent; cursor: pointer; font-size: 10.5px; font-weight: 850; }
+.work-view-switch button.active { color: #176fcf; background: #fff; box-shadow: 0 2px 8px rgba(22,55,75,.09); }
+.month-navigator { min-height: 45px; display: grid; grid-template-columns: 38px 1fr 38px; align-items: center; gap: 8px; }
+.month-navigator b { color: #17384b; font-size: 16px; font-weight: 950; text-align: center; }
+.month-navigator button { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #d8e2e9; border-radius: 9px; color: #2775c6; background: #f8fafb; cursor: pointer; }
+.month-navigator button:disabled { opacity: .35; cursor: default; }
+.custom-work-range { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 8px; }
+.custom-work-range label { display: grid; gap: 5px; color: #667b88; font-size: 10px; font-weight: 800; }
+.custom-work-range input { width: 100%; height: 39px; padding: 0 7px; border: 1px solid #d3dfe7; border-radius: 8px; direction: ltr; font-size: 10px; }
+.custom-work-range .primary-button { min-height: 39px; }
+.work-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.work-summary-grid > div { min-height: 116px; padding: 16px; display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto 1fr; align-items: center; column-gap: 12px; }
+.work-summary-grid svg { width: 40px; height: 40px; padding: 10px; grid-row: 1 / 3; border-radius: 11px; color: #2678cc; background: #edf5fd; }
+.work-summary-grid span { align-self: end; color: #71848f; font-size: 10px; font-weight: 800; }
+.work-summary-grid b { align-self: start; color: #17384a; font-size: 24px; font-weight: 950; }
+.work-summary-grid .overtime svg { color: #9a6b18; background: #fff5df; }
+.work-summary-grid .total { border-color: #cfe4d8; background: linear-gradient(135deg, #f0fbf5, #fff); }
+.work-summary-grid .total svg { color: #1f8958; background: #e3f6eb; }
+.work-summary-grid .total b { color: #167449; font-size: 20px; }
+.work-log-list { margin-top: 16px; overflow: hidden; }
+.work-log-list .table-scroll { overflow-x: auto; }
+.work-log-table { width: 100%; min-width: 860px; table-layout: fixed; }
+.work-log-table th:nth-child(1) { width: 24%; }.work-log-table th:nth-child(2), .work-log-table th:nth-child(3) { width: 13%; }.work-log-table th:nth-child(4) { width: 13%; }.work-log-table th:nth-child(5) { width: 12%; }.work-log-table th:nth-child(6) { width: 19%; }.work-log-table th:nth-child(7) { width: 6%; }
+.work-log-table td { vertical-align: middle; }
+.work-log-table td > b { color: #1b3c4f; font-size: 11px; }
+.work-log-table td small { margin-top: 3px; display: block; color: #788a95; font-size: 8.5px; }
+
+@media (max-width: 1050px) {
+  .work-log-top-grid { grid-template-columns: 1fr; }
+  .work-summary-column { grid-template-columns: minmax(320px, .8fr) 1.2fr; grid-template-rows: auto; }
+}
+@media (max-width: 760px) {
+  .work-summary-column, .work-summary-grid { grid-template-columns: 1fr; }
+  .work-entry-form, .daily-pay-preview { grid-template-columns: 1fr; }
+  .work-entry-form .work-date-field, .daily-pay-preview .daily-pay-total { grid-column: auto; }
+  .custom-work-range { grid-template-columns: 1fr 1fr; }.custom-work-range .primary-button { grid-column: 1 / -1; }
+}

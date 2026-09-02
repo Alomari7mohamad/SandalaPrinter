@@ -11,6 +11,7 @@ import { ProfitsPage } from './pages/ProfitsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ShortagesPage } from './pages/ShortagesPage'
 import { BookPrintingPage } from './pages/BookPrintingPage'
+import { WorkLogPage } from './pages/WorkLogPage'
 
 export function App() {
   const navigate = useNavigate()
@@ -44,6 +45,7 @@ export function App() {
         <Route path="shortages" element={<ShortagesPage />} />
         <Route path="book-printing" element={<BookPrintingPage />} />
         <Route path="profits" element={<ProfitsPage />} />
+        <Route path="work-log" element={<WorkLogPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

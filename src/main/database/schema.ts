@@ -238,3 +238,16 @@ export const backupHistory = sqliteTable('backup_history', {
   sizeBytes: integer('size_bytes'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP')
 })
+
+export const ownerWorkLogs = sqliteTable('owner_work_logs', {
+  id: text('id').primaryKey(),
+  workDate: text('work_date').notNull().unique(),
+  regularHours: real('regular_hours').notNull().default(0),
+  overtimeHours: real('overtime_hours').notNull().default(0),
+  hourlyRate: real('hourly_rate').notNull().default(0),
+  overtimePercentage: real('overtime_percentage').notNull().default(0),
+  regularPay: real('regular_pay').notNull().default(0),
+  overtimePay: real('overtime_pay').notNull().default(0),
+  totalPay: real('total_pay').notNull().default(0),
+  ...timestamps
+})

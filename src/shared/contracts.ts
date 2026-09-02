@@ -197,6 +197,20 @@ export interface PurchaseRequestDto { id: string; inventoryItemId: string; itemN
 export interface PurchaseRequestInput { inventoryItemId: string; requestedQuantity: number; unitPrice: number }
 
 export interface ReportRangeInput { from: string; to: string }
+export interface WorkLogInput { workDate: string; regularHours: number; overtimeHours: number; hourlyRate: number; overtimePercentage: number }
+export interface WorkLogDto extends WorkLogInput {
+  id: string
+  regularPay: number
+  overtimePay: number
+  totalPay: number
+  createdAt: string
+  updatedAt: string
+}
+export interface WorkLogReportDto {
+  range: ReportRangeInput
+  summary: { workDays: number; regularHours: number; overtimeHours: number; totalPay: number }
+  rows: WorkLogDto[]
+}
 export interface ReportSummaryDto {
   ordersCount: number
   itemsQuantity: number
@@ -288,6 +302,10 @@ export interface DesktopApi {
   }
   reports: {
     get: (range: ReportRangeInput) => Promise<BusinessReportDto>
+  }
+  workLogs: {
+    save: (input: WorkLogInput) => Promise<WorkLogDto>
+    getReport: (range: ReportRangeInput) => Promise<WorkLogReportDto>
   }
   printing: {
     printOrder: (options: PrintOrderOptions) => Promise<void>

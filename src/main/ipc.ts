@@ -3,7 +3,7 @@ import { getDashboardStats } from './database/dashboard.repository'
 import { getDatabasePath } from './database/client'
 import { catalogService } from './services/catalog.service'
 import type { PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../shared/contracts'
-import type { CreateOrderInput, InventoryAdjustmentInput, InventoryItemInput, InventorySettingsInput, OrderListQuery, PurchaseRequestInput, ReportRangeInput, SupplierInput } from '../shared/contracts'
+import type { CreateOrderInput, InventoryAdjustmentInput, InventoryItemInput, InventorySettingsInput, OrderListQuery, PurchaseRequestInput, ReportRangeInput, SupplierInput, WorkLogInput } from '../shared/contracts'
 import type { PrintOrderOptions, UpdateSettingsDto } from '../shared/contracts'
 import { orderService } from './services/order.service'
 import { inventoryService } from './services/inventory.service'
@@ -11,6 +11,7 @@ import { reportsService } from './services/reports.service'
 import * as updateService from './services/update.service'
 import { clearSalesData } from './services/sales-maintenance.service'
 import { shortagesService } from './services/shortages.service'
+import { workLogService } from './services/work-log.service'
 
 export function registerIpcHandlers(): void {
   ipcMain.handle('app:get-info', () => ({ version: app.getVersion(), databasePath: getDatabasePath() }))
@@ -46,6 +47,8 @@ export function registerIpcHandlers(): void {
     const phone=supplier.whatsappPhone.replace(/\D/g,''); await shell.openExternal(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`)
   })
   ipcMain.handle('reports:get', (_event, range: ReportRangeInput) => reportsService.get(range))
+  ipcMain.handle('work-logs:save', (_event, input: WorkLogInput) => workLogService.save(input))
+  ipcMain.handle('work-logs:get-report', (_event, range: ReportRangeInput) => workLogService.getReport(range))
   ipcMain.handle('printing:print-order', (event, input: PrintOrderOptions) => {
     if (!input || !['THERMAL', 'A4', 'A5'].includes(input.pageSize)) {
       throw new Error('مقاس ورق الطباعة غير صالح.')
@@ -110,6 +113,8 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('shortages:delete-request')
   ipcMain.removeHandler('shortages:open-whatsapp')
   ipcMain.removeHandler('reports:get')
+  ipcMain.removeHandler('work-logs:save')
+  ipcMain.removeHandler('work-logs:get-report')
   ipcMain.removeHandler('printing:print-order')
   ipcMain.removeHandler('maintenance:clear-sales-data')
   ipcMain.removeHandler('updates:get-settings')

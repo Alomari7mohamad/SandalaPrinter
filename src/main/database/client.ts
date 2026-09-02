@@ -16,6 +16,7 @@ import suppliersShortagesMigration from './migrations/0008_suppliers_shortages.s
 import catalogInventoryProductsMigration from './migrations/0009_catalog_inventory_products.sql?raw'
 import inventoryPackagesMigration from './migrations/0010_inventory_packages.sql?raw'
 import inventoryCategoriesMigration from './migrations/0011_inventory_categories.sql?raw'
+import ownerWorkLogsMigration from './migrations/0012_owner_work_logs.sql?raw'
 import { seedCorePricingData } from './seed'
 import { seedInventoryItems } from './inventory.seed'
 import { seedGhassanProducts } from './ghassan-products.seed'
@@ -71,6 +72,9 @@ export function initializeDatabase() {
   }
   if (schemaVersion < 12) {
     sqlite.transaction(() => sqlite?.exec(inventoryCategoriesMigration))()
+  }
+  if (schemaVersion < 13) {
+    sqlite.transaction(() => sqlite?.exec(ownerWorkLogsMigration))()
   }
   seedCorePricingData(sqlite)
   seedInventoryItems(sqlite)

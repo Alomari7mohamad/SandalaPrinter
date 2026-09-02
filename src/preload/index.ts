@@ -43,6 +43,10 @@ const api: DesktopApi = {
   reports: {
     get: (range) => ipcRenderer.invoke('reports:get', range)
   },
+  workLogs: {
+    save: (input) => ipcRenderer.invoke('work-logs:save', input),
+    getReport: (range) => ipcRenderer.invoke('work-logs:get-report', range)
+  },
   printing: {
     printOrder: (options) => ipcRenderer.invoke('printing:print-order', options)
   },

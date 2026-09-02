@@ -9,6 +9,7 @@ const validApi = () => ({
   inventory: { list: vi.fn(), adjust: vi.fn(), updateSettings: vi.fn(), createItem: vi.fn(), deleteItem: vi.fn() },
   shortages: { listSuppliers: vi.fn(), saveSupplier: vi.fn(), listRequests: vi.fn(), saveRequest: vi.fn(), deleteRequest: vi.fn(), openWhatsApp: vi.fn() },
   reports: { get: vi.fn() },
+  workLogs: { save: vi.fn(), getReport: vi.fn() },
   printing: { printOrder: vi.fn() },
   maintenance: { clearSalesData: vi.fn() },
   updates: { getSettings: vi.fn(), saveSettings: vi.fn(), getStatus: vi.fn(), check: vi.fn(), download: vi.fn(), install: vi.fn(), onStatusChanged: vi.fn() }
