@@ -79,7 +79,7 @@ export function SettingsPage() {
       <section className={`panel update-status-card ${status?.state ?? 'idle'}`}>
         <div><ShieldCheck size={25} /><span>حالة التحديث</span></div><b>{status?.message ?? 'جاهز لفحص التحديثات.'}</b>
         {status?.availableVersion && <small dir="ltr">Version {status.availableVersion}</small>}
-        {status?.state === 'downloading' && <div className="update-progress"><span style={{ width: `${status.progress ?? 0}%` }} /><b>{formatNumber(status.progress ?? 0)}%</b></div>}
+        {(status?.state === 'downloading' || status?.state === 'installing') && <div className="update-progress"><span style={{ width: `${status.progress ?? 0}%` }} /><b>{status.state === 'installing' ? 'جارٍ التثبيت...' : `${formatNumber(status.progress ?? 0)}%`}</b></div>}
         {status?.state === 'available' && <button className="primary-button" disabled={Boolean(busy)} onClick={() => void download()}>{busy === 'download' ? <LoaderCircle className="spin" size={17} /> : <Download size={17} />} تنزيل التحديث</button>}
         {status?.state === 'downloaded' && <button className="primary-button install-update-button" disabled={Boolean(busy)} onClick={() => void install()}><RefreshCw size={17} /> إعادة التشغيل وتثبيت التحديث</button>}
       </section>

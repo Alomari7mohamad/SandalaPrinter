@@ -475,6 +475,7 @@ input:focus, select:focus, textarea:focus { outline: none; }
 }
 
 /* Owner work log */
+.update-status-card.installing { border-color: #bce7cc; background: #f3fbf6; }
 .work-log-page { max-width: 1480px; }
 .work-log-top-grid { display: grid; grid-template-columns: minmax(470px, 1.08fr) minmax(430px, .92fr); gap: 16px; align-items: stretch; }
 .work-entry-card { overflow: hidden; }

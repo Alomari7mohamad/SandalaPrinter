@@ -41,7 +41,10 @@ export async function initializeUpdateService(): Promise<void> {
     return
   }
   autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
+  // Install only after the explicit button action. Installing on an ordinary
+  // quit can leave an assisted NSIS update waiting without reopening the app.
+  autoUpdater.autoInstallOnAppQuit = false
+  autoUpdater.autoRunAppAfterInstall = true
   autoUpdater.on('checking-for-update', () => publish({ state: 'checking', progress: null, message: 'جارٍ البحث عن تحديث...' }))
   autoUpdater.on('update-available', (info) => publish({ state: 'available', availableVersion: info.version, progress: null, message: `يتوفر تحديث جديد: الإصدار ${info.version}` }))
   autoUpdater.on('update-not-available', () => publish({ state: 'not-available', availableVersion: null, progress: null, message: 'أنت تستخدم أحدث إصدار.' }))
@@ -88,5 +91,8 @@ export function installUpdate(): void {
   if (status.state !== 'downloaded') throw new Error('لم يكتمل تنزيل التحديث بعد.')
   if (!autoUpdater) throw new Error('خدمة التحديث غير متاحة حاليًا.')
   const updater = autoUpdater
-  setImmediate(() => updater.quitAndInstall(false, true))
+  publish({ state: 'installing', progress: 100, message: 'جارٍ تثبيت التحديث وإعادة تشغيل التطبيق...' })
+  // Silent mode completes the assisted NSIS installation without leaving a
+  // hidden wizard open; forceRunAfter starts the newly installed version.
+  setImmediate(() => updater.quitAndInstall(true, true))
 }
