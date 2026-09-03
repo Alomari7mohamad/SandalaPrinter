@@ -209,7 +209,7 @@ export interface WorkLogDto extends WorkLogInput {
 }
 export interface WorkLogReportDto {
   range: ReportRangeInput
-  summary: { workDays: number; regularHours: number; increasedHours: number; totalHours: number; totalPay: number }
+  summary: { workDays: number; regularHours: number; increasedHours: number; totalHours: number; regularPay: number; increasedPay: number; totalPay: number }
   rows: WorkLogDto[]
 }
 export interface ReportSummaryDto {

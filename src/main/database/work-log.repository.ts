@@ -28,6 +28,7 @@ export function getWorkLogReport(from: string, to: string): WorkLogReportDto {
   const rows = database.prepare(`SELECT ${selectColumns} FROM owner_work_logs WHERE work_date BETWEEN ? AND ? ORDER BY work_date DESC`).all(from, to) as WorkLogDto[]
   const summary = database.prepare(`SELECT COUNT(*) workDays, COALESCE(SUM(regular_hours),0) regularHours,
     COALESCE(SUM(overtime_hours),0) increasedHours, COALESCE(SUM(regular_hours + overtime_hours),0) totalHours,
+    COALESCE(SUM(regular_pay),0) regularPay, COALESCE(SUM(overtime_pay),0) increasedPay,
     COALESCE(SUM(total_pay),0) totalPay
     FROM owner_work_logs WHERE work_date BETWEEN ? AND ?`).get(from, to) as WorkLogReportDto['summary']
   return { range: { from, to }, summary, rows }
