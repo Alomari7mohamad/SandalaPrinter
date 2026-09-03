@@ -3,9 +3,10 @@ import type { WorkLogDto, WorkLogInput, WorkLogReportDto } from '../../shared/co
 import { calculateWorkPay } from '../../shared/work-logs/work-pay'
 import { getSqlite } from './client'
 
-const selectColumns = `id, work_date workDate, (regular_hours + overtime_hours) hours,
-  hourly_rate hourlyRate, overtime_percentage additionPercentage, regular_pay basePay,
-  overtime_pay additionPay, total_pay totalPay, created_at createdAt, updated_at updatedAt`
+const selectColumns = `id, work_date workDate, regular_hours regularHours, overtime_hours increasedHours,
+  hourly_rate hourlyRate, overtime_percentage additionPercentage, regular_pay regularPay,
+  overtime_pay increasedPay, (overtime_pay - overtime_hours * hourly_rate) additionPay,
+  total_pay totalPay, created_at createdAt, updated_at updatedAt`
 
 export function saveWorkLog(input: WorkLogInput): WorkLogDto {
   const database = getSqlite()
@@ -18,14 +19,15 @@ export function saveWorkLog(input: WorkLogInput): WorkLogDto {
     ON CONFLICT(work_date) DO UPDATE SET regular_hours=excluded.regular_hours, overtime_hours=excluded.overtime_hours,
       hourly_rate=excluded.hourly_rate, overtime_percentage=excluded.overtime_percentage, regular_pay=excluded.regular_pay,
       overtime_pay=excluded.overtime_pay, total_pay=excluded.total_pay, updated_at=CURRENT_TIMESTAMP
-  `).run(id, input.workDate, input.hours, 0, input.hourlyRate, input.additionPercentage, pay.basePay, pay.additionPay, pay.totalPay)
+  `).run(id, input.workDate, input.regularHours, input.increasedHours, input.hourlyRate, input.additionPercentage, pay.regularPay, pay.increasedPay, pay.totalPay)
   return database.prepare(`SELECT ${selectColumns} FROM owner_work_logs WHERE work_date = ?`).get(input.workDate) as WorkLogDto
 }
 
 export function getWorkLogReport(from: string, to: string): WorkLogReportDto {
   const database = getSqlite()
   const rows = database.prepare(`SELECT ${selectColumns} FROM owner_work_logs WHERE work_date BETWEEN ? AND ? ORDER BY work_date DESC`).all(from, to) as WorkLogDto[]
-  const summary = database.prepare(`SELECT COUNT(*) workDays, COALESCE(SUM(regular_hours + overtime_hours),0) totalHours,
+  const summary = database.prepare(`SELECT COUNT(*) workDays, COALESCE(SUM(regular_hours),0) regularHours,
+    COALESCE(SUM(overtime_hours),0) increasedHours, COALESCE(SUM(regular_hours + overtime_hours),0) totalHours,
     COALESCE(SUM(total_pay),0) totalPay
     FROM owner_work_logs WHERE work_date BETWEEN ? AND ?`).get(from, to) as WorkLogReportDto['summary']
   return { range: { from, to }, summary, rows }
