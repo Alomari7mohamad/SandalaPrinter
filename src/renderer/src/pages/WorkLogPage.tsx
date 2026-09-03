@@ -35,6 +35,7 @@ export function WorkLogPage() {
   const [success, setSuccess] = useState('')
 
   const numeric = (value: string) => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0
+  const wholeNumberText = (value: string) => value.replace(/[^0-9]/g, '')
   const pay = useMemo(() => calculateWorkPay({ regularHours: numeric(regularHours), increasedHours: numeric(increasedHours), hourlyRate: numeric(hourlyRate), additionPercentage: numeric(additionPercentage) }), [regularHours, increasedHours, hourlyRate, additionPercentage])
   const activeRange: ReportRangeInput = viewMode === 'MONTH' ? monthRange(selectedMonth, selectedMonth) : { from: customFrom, to: customTo }
 
@@ -83,10 +84,10 @@ export function WorkLogPage() {
         <div className="section-title"><div><span className="eyebrow">تسجيل يوم عمل</span><h2>محمد وجيه عمري</h2><p>أدخل الساعات، وسيُحسب أجر اليوم مباشرة قبل الحفظ.</p></div><UserRound size={23} /></div>
         <div className="work-entry-form">
           <label className="work-date-field">تاريخ العمل<input type="date" value={workDate} max={today()} onChange={(event) => setWorkDate(event.target.value)} /></label>
-          <label>ساعات بأجر عادي<input type="number" min="0" max="24" step="1" inputMode="numeric" value={regularHours} onChange={(event) => setRegularHours(event.target.value)} placeholder="مثال: 6" /></label>
-          <label>ساعات بأجر مع زيادة<input type="number" min="0" max="24" step="1" inputMode="numeric" value={increasedHours} onChange={(event) => setIncreasedHours(event.target.value)} placeholder="مثال: 2" /></label>
-          <label>أجر الساعة<input type="number" min="1" step="1" inputMode="numeric" value={hourlyRate} onChange={(event) => setHourlyRate(event.target.value)} placeholder="مثال: 20" /></label>
-          <label>نسبة الإضافة على أجر الساعة<input type="number" min="0" step="1" value={additionPercentage} onChange={(event) => setAdditionPercentage(event.target.value)} placeholder="مثال: 50" /><span className="field-suffix">%</span></label>
+          <label>ساعات بأجر عادي<input type="text" inputMode="numeric" pattern="[0-9]*" dir="ltr" value={regularHours} onChange={(event) => setRegularHours(wholeNumberText(event.target.value))} placeholder="مثال: 6" /></label>
+          <label>ساعات بأجر مع زيادة<input type="text" inputMode="numeric" pattern="[0-9]*" dir="ltr" value={increasedHours} onChange={(event) => setIncreasedHours(wholeNumberText(event.target.value))} placeholder="مثال: 2" /></label>
+          <label>أجر الساعة<input type="text" inputMode="numeric" pattern="[0-9]*" dir="ltr" value={hourlyRate} onChange={(event) => setHourlyRate(wholeNumberText(event.target.value))} placeholder="مثال: 20" /></label>
+          <label><span>نسبة الإضافة على أجر الساعة <b dir="ltr">(%)</b></span><input type="text" inputMode="numeric" pattern="[0-9]*" dir="ltr" value={additionPercentage} onChange={(event) => setAdditionPercentage(wholeNumberText(event.target.value))} placeholder="مثال: 50" /></label>
         </div>
         <div className="daily-pay-preview"><div><span>أجر الساعات العادية</span><b>{formatCurrency(pay.regularPay)}</b></div><div><span>أجر الساعات ذات الزيادة</span><b>{formatCurrency(pay.increasedPay)}</b><small>{formatCurrency(pay.adjustedHourlyRate)} للساعة</small></div><div className="daily-pay-total"><span>أجر اليوم المستحق</span><strong>{formatCurrency(pay.totalPay)}</strong></div></div>
         <button type="button" className="primary-button work-save-button" disabled={saving || !workDate || !Number.isInteger(numeric(regularHours)) || !Number.isInteger(numeric(increasedHours)) || numeric(regularHours) + numeric(increasedHours) < 1 || numeric(regularHours) + numeric(increasedHours) > 24 || !Number.isInteger(numeric(hourlyRate)) || numeric(hourlyRate) < 1} onClick={() => void save()}>{saving ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}{saving ? 'جارٍ الحفظ...' : 'حفظ دوام اليوم'}</button>
