@@ -24,5 +24,10 @@ export const workLogService = {
     const parsed = rangeSchema.safeParse(range)
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'فترة الدوام غير صحيحة.')
     return repository.getWorkLogReport(parsed.data.from, parsed.data.to)
+  },
+  delete(id: string) {
+    const parsed = z.string().uuid('معرّف يوم العمل غير صالح.').safeParse(id)
+    if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'معرّف يوم العمل غير صالح.')
+    if (!repository.deleteWorkLog(parsed.data)) throw new Error('سجل يوم العمل غير موجود.')
   }
 }

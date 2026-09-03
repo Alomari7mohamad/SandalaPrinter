@@ -49,6 +49,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('reports:get', (_event, range: ReportRangeInput) => reportsService.get(range))
   ipcMain.handle('work-logs:save', (_event, input: WorkLogInput) => workLogService.save(input))
   ipcMain.handle('work-logs:get-report', (_event, range: ReportRangeInput) => workLogService.getReport(range))
+  ipcMain.handle('work-logs:delete', (_event, id: string) => workLogService.delete(id))
   ipcMain.handle('printing:print-order', (event, input: PrintOrderOptions) => {
     if (!input || !['THERMAL', 'A4', 'A5'].includes(input.pageSize)) {
       throw new Error('مقاس ورق الطباعة غير صالح.')
@@ -115,6 +116,7 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('reports:get')
   ipcMain.removeHandler('work-logs:save')
   ipcMain.removeHandler('work-logs:get-report')
+  ipcMain.removeHandler('work-logs:delete')
   ipcMain.removeHandler('printing:print-order')
   ipcMain.removeHandler('maintenance:clear-sales-data')
   ipcMain.removeHandler('updates:get-settings')

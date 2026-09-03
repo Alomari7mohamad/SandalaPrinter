@@ -32,3 +32,7 @@ export function getWorkLogReport(from: string, to: string): WorkLogReportDto {
     FROM owner_work_logs WHERE work_date BETWEEN ? AND ?`).get(from, to) as WorkLogReportDto['summary']
   return { range: { from, to }, summary, rows }
 }
+
+export function deleteWorkLog(id: string): boolean {
+  return getSqlite().prepare('DELETE FROM owner_work_logs WHERE id = ?').run(id).changes > 0
+}

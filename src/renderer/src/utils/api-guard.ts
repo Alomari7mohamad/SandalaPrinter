@@ -35,6 +35,7 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.reports, 'get') &&
     hasFunction(value.workLogs, 'save') &&
     hasFunction(value.workLogs, 'getReport') &&
+    hasFunction(value.workLogs, 'delete') &&
     hasFunction(value.printing, 'printOrder') &&
     hasFunction(value.maintenance, 'clearSalesData') &&
     hasFunction(value.updates, 'getSettings') &&

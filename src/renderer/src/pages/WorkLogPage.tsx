@@ -1,4 +1,4 @@
-import { CalendarClock, ChevronLeft, ChevronRight, Clock3, Coins, Edit3, LoaderCircle, Save, Sparkles, UserRound } from 'lucide-react'
+import { CalendarClock, ChevronLeft, ChevronRight, Clock3, Coins, Edit3, LoaderCircle, Save, Sparkles, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReportRangeInput, WorkLogDto, WorkLogReportDto } from '../../../shared/contracts'
 import { calculateWorkPay } from '../../../shared/work-logs/work-pay'
@@ -30,6 +30,7 @@ export function WorkLogPage() {
   const [report, setReport] = useState<WorkLogReportDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -63,6 +64,16 @@ export function WorkLogPage() {
     setAdditionPercentage(String(row.additionPercentage)); setSuccess('يمكنك الآن تعديل السجل ثم الضغط على حفظ.')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  const remove = async (row: WorkLogDto) => {
+    if (!window.confirm(`هل تريد حذف سجل العمل ليوم ${dateLabel(row.workDate)}؟\n\nسيُعاد حساب الساعات والأجر الإجمالي مباشرة.`)) return
+    setDeletingId(row.id); setError(''); setSuccess('')
+    try {
+      await window.desktopApi.workLogs.delete(row.id)
+      setSuccess('تم حذف يوم العمل وتحديث الإجماليات بنجاح.')
+      await load(activeRange)
+    } catch (cause) { setError(getArabicError(cause, 'تعذر حذف يوم العمل.')) }
+    finally { setDeletingId('') }
+  }
 
   return <div className="page work-log-page">
     <PageHeader title="سجل دوام صاحب المطبعة" subtitle="تسجيل ساعات العمل والأجر المستحق يومياً ومتابعة الإجماليات حسب الشهر أو الفترة" />
@@ -87,6 +98,6 @@ export function WorkLogPage() {
       </section>
     </div>
 
-    <section className="panel work-log-list"><div className="section-title"><div><h2>تفاصيل أيام العمل</h2><p>{viewMode === 'MONTH' ? monthLabel(selectedMonth) : `${dateLabel(customFrom)} — ${dateLabel(customTo)}`}</p></div><CalendarClock size={22} /></div>{loading ? <div className="table-state"><LoaderCircle className="spin" size={26} /> جارٍ تحميل السجل...</div> : !report || report.rows.length === 0 ? <div className="empty-state large"><Clock3 size={40} /><b>لا توجد أيام عمل مسجلة</b><span>أدخل ساعات أول يوم عمل من النموذج في أعلى الصفحة.</span></div> : <div className="table-scroll"><table className="data-table work-log-table"><thead><tr><th>التاريخ</th><th>ساعات عادية</th><th>ساعات بزيادة</th><th>أجر الساعة</th><th>نسبة الزيادة</th><th>أجر اليوم</th><th></th></tr></thead><tbody>{report.rows.map((row) => <tr key={row.id}><td><b>{dateLabel(row.workDate)}</b></td><td>{formatNumber(row.regularHours, 0, 2)}</td><td>{formatNumber(row.increasedHours, 0, 2)}</td><td>{formatCurrency(row.hourlyRate)}</td><td>{formatNumber(row.additionPercentage, 0, 2)}%</td><td><b>{formatCurrency(row.totalPay)}</b><small>عادي {formatCurrency(row.regularPay)} • مع الزيادة {formatCurrency(row.increasedPay)}</small></td><td><button className="icon-button" title="تعديل اليوم" onClick={() => edit(row)}><Edit3 size={17} /></button></td></tr>)}</tbody></table></div>}</section>
+    <section className="panel work-log-list"><div className="section-title"><div><h2>تفاصيل أيام العمل</h2><p>{viewMode === 'MONTH' ? monthLabel(selectedMonth) : `${dateLabel(customFrom)} — ${dateLabel(customTo)}`}</p></div><CalendarClock size={22} /></div>{loading ? <div className="table-state"><LoaderCircle className="spin" size={26} /> جارٍ تحميل السجل...</div> : !report || report.rows.length === 0 ? <div className="empty-state large"><Clock3 size={40} /><b>لا توجد أيام عمل مسجلة</b><span>أدخل ساعات أول يوم عمل من النموذج في أعلى الصفحة.</span></div> : <div className="table-scroll"><table className="data-table work-log-table"><thead><tr><th>التاريخ</th><th>ساعات عادية</th><th>ساعات بزيادة</th><th>أجر الساعة</th><th>نسبة الزيادة</th><th>أجر اليوم</th><th></th></tr></thead><tbody>{report.rows.map((row) => <tr key={row.id}><td><b>{dateLabel(row.workDate)}</b></td><td>{formatNumber(row.regularHours, 0, 2)}</td><td>{formatNumber(row.increasedHours, 0, 2)}</td><td>{formatCurrency(row.hourlyRate)}</td><td>{formatNumber(row.additionPercentage, 0, 2)}%</td><td><b>{formatCurrency(row.totalPay)}</b><small>عادي {formatCurrency(row.regularPay)} • مع الزيادة {formatCurrency(row.increasedPay)}</small></td><td><div className="row-actions"><button className="icon-button" title="تعديل اليوم" disabled={Boolean(deletingId)} onClick={() => edit(row)}><Edit3 size={17} /></button><button className="icon-button danger" title="حذف يوم العمل" aria-label={`حذف سجل ${dateLabel(row.workDate)}`} disabled={Boolean(deletingId)} onClick={() => void remove(row)}>{deletingId === row.id ? <LoaderCircle className="spin" size={17} /> : <Trash2 size={17} />}</button></div></td></tr>)}</tbody></table></div>}</section>
   </div>
 }

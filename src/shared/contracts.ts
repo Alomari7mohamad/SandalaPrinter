@@ -307,6 +307,7 @@ export interface DesktopApi {
   workLogs: {
     save: (input: WorkLogInput) => Promise<WorkLogDto>
     getReport: (range: ReportRangeInput) => Promise<WorkLogReportDto>
+    delete: (id: string) => Promise<void>
   }
   printing: {
     printOrder: (options: PrintOrderOptions) => Promise<void>

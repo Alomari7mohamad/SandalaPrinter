@@ -45,7 +45,8 @@ const api: DesktopApi = {
   },
   workLogs: {
     save: (input) => ipcRenderer.invoke('work-logs:save', input),
-    getReport: (range) => ipcRenderer.invoke('work-logs:get-report', range)
+    getReport: (range) => ipcRenderer.invoke('work-logs:get-report', range),
+    delete: (id) => ipcRenderer.invoke('work-logs:delete', id)
   },
   printing: {
     printOrder: (options) => ipcRenderer.invoke('printing:print-order', options)

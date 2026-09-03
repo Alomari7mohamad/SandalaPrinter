@@ -520,7 +520,7 @@ input:focus, select:focus, textarea:focus { outline: none; }
 .work-log-list { margin-top: 16px; overflow: hidden; }
 .work-log-list .table-scroll { overflow-x: auto; }
 .work-log-table { width: 100%; min-width: 860px; table-layout: fixed; }
-.work-log-table th:nth-child(1) { width: 24%; }.work-log-table th:nth-child(2), .work-log-table th:nth-child(3) { width: 13%; }.work-log-table th:nth-child(4) { width: 13%; }.work-log-table th:nth-child(5) { width: 12%; }.work-log-table th:nth-child(6) { width: 19%; }.work-log-table th:nth-child(7) { width: 6%; }
+.work-log-table th:nth-child(1) { width: 21%; }.work-log-table th:nth-child(2), .work-log-table th:nth-child(3) { width: 13%; }.work-log-table th:nth-child(4) { width: 13%; }.work-log-table th:nth-child(5) { width: 12%; }.work-log-table th:nth-child(6) { width: 19%; }.work-log-table th:nth-child(7) { width: 9%; }
 .work-log-table td { vertical-align: middle; }
 .work-log-table td > b { color: #1b3c4f; font-size: 11px; }
 .work-log-table td small { margin-top: 3px; display: block; color: #788a95; font-size: 8.5px; }
