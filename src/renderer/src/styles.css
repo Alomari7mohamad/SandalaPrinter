@@ -444,6 +444,50 @@ input:focus, select:focus, textarea:focus { outline: none; }
 .booklet-config-grid input, .booklet-config-grid select { width: 100%; height: 47px; padding: 0 12px; border: 1px solid #ccd9e3; border-radius: 10px; color: #17384a; background: #fff; font-size: 12px; font-weight: 750; }
 .booklet-config-grid input { direction: ltr; text-align: center; font-size: 18px; font-weight: 900; }
 .booklet-config-grid input:focus, .booklet-config-grid select:focus { border-color: #3387df; box-shadow: 0 0 0 4px rgba(35,121,217,.09); }
+
+/* Modern native selects — one visual language across every workspace */
+select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-inline: 13px 40px !important;
+  border: 1px solid #cbd9e3 !important;
+  border-radius: 11px !important;
+  color: #18394a;
+  background-color: #fff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23566f7e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: left 13px center !important;
+  background-size: 16px !important;
+  box-shadow: 0 1px 2px rgba(20, 52, 72, .04);
+  cursor: pointer;
+  font-weight: 700;
+}
+select:not([multiple]):hover:not(:disabled) { border-color: #8fb6d8 !important; background-color: #fbfdff !important; box-shadow: 0 5px 14px rgba(25, 83, 125, .08); }
+select:not([multiple]):focus { border-color: #2e82df !important; box-shadow: 0 0 0 4px rgba(35, 121, 217, .11) !important; }
+select:not([multiple]):disabled { color: #8595a0; background-color: #f2f5f7 !important; cursor: not-allowed; opacity: .82; }
+select option { color: #18394a; background: #fff; font-weight: 650; }
+
+/* Category workspace */
+.category-manager-panel { margin-bottom: 14px; overflow: hidden; }
+.category-manager-toggle { width: 100%; min-height: 66px; padding: 12px 17px; display: flex; align-items: center; justify-content: space-between; color: #294858; background: linear-gradient(180deg, #fff, #f9fbfd); cursor: pointer; text-align: right; }
+.category-manager-toggle > span { display: flex; align-items: center; gap: 11px; }
+.category-manager-toggle > span > svg { width: 38px; height: 38px; padding: 9px; color: #2476cf; border-radius: 10px; background: #ebf4ff; }
+.category-manager-toggle b, .category-manager-toggle small { display: block; }
+.category-manager-toggle b { font-size: 13px; }
+.category-manager-toggle small { margin-top: 2px; color: #71838f; font-size: 10px; }
+.category-manager-toggle:hover { background: #f7fbff; }
+.category-manager-grid { padding: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 9px; border-top: 1px solid #e6edf2; background: #f8fafc; }
+.category-manager-grid article { min-width: 0; min-height: 62px; padding: 10px 11px; display: flex; align-items: center; justify-content: space-between; gap: 9px; border: 1px solid #dbe5ec; border-radius: 11px; background: #fff; }
+.category-manager-grid article > span { min-width: 0; }
+.category-manager-grid article b, .category-manager-grid article small { display: block; }
+.category-manager-grid article b { overflow: hidden; color: #253f4e; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.category-manager-grid article small { margin-top: 3px; color: #80909a; font-size: 9px; }
+.category-manager-grid article > div { display: flex; gap: 4px; }
+.category-manager-grid article button { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 8px; color: #2473c5; background: #eff6fd; cursor: pointer; }
+.category-manager-grid article button:hover { background: #deedfb; }
+.category-manager-grid article button.danger { color: #d4424d; background: #fff0f1; }
+.category-manager-grid article button.danger:hover { background: #ffe1e4; }
+.category-manager-grid article button:disabled { opacity: .45; cursor: wait; }
 .booklet-summary { margin: 16px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
 .booklet-summary > div { min-height: 101px; padding: 15px 17px; display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 11px; border: 1px solid #dce6ed; border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); }
 .booklet-summary > div > span { width: 40px; height: 40px; grid-row: 1 / 3; display: grid; place-items: center; border-radius: 11px; color: #2477ce; background: #edf5fd; }

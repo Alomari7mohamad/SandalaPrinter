@@ -28,7 +28,7 @@ export interface UpdateStatusDto {
 }
 
 export interface ServiceCategoryDto { id: string; code: string; nameAr: string; active: boolean; sortOrder: number }
-export interface ServiceCategoryInput { nameAr: string }
+export interface ServiceCategoryInput { id?: string; nameAr: string }
 
 export interface ServiceDto {
   id: string
@@ -268,6 +268,7 @@ export interface DesktopApi {
   catalog: {
     listCategories: () => Promise<ServiceCategoryDto[]>
     saveCategory: (input: ServiceCategoryInput) => Promise<ServiceCategoryDto>
+    deleteCategory: (id: string) => Promise<void>
     listServices: () => Promise<ServiceDto[]>
     saveService: (input: ServiceInput) => Promise<ServiceDto>
     setServiceActive: (id: string, active: boolean) => Promise<void>

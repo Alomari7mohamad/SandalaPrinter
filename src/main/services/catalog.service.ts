@@ -6,7 +6,7 @@ import type { PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../..
 import * as repository from '../database/catalog.repository'
 
 const nullableText = z.string().trim().max(250).nullable()
-const categorySchema = z.object({ nameAr: z.string().trim().min(2, 'اسم التصنيف قصير جدًا.').max(100) })
+const categorySchema = z.object({ id: z.string().min(2).max(100).optional(), nameAr: z.string().trim().min(2, 'اسم التصنيف قصير جدًا.').max(100) })
 const serviceSchema = z.object({
   id: z.string().uuid().or(z.string().min(2)).optional(), code: z.string().trim().min(2).max(80).regex(/^[A-Z0-9_-]+$/),
   nameAr: z.string().trim().min(2).max(150), nameHe: z.string().trim().max(150).nullable(), categoryId: z.string().min(2), paperType: nullableText, size: nullableText,
@@ -37,7 +37,11 @@ export const catalogService = {
   saveCategory(input: ServiceCategoryInput) {
     const parsed = categorySchema.safeParse(input)
     if (!parsed.success) throw validationError(parsed.error)
-    return repository.saveCategory(parsed.data.nameAr)
+    return repository.saveCategory(parsed.data)
+  },
+  deleteCategory(id: string) {
+    if (!id || id.length > 100) throw new Error('معرّف التصنيف غير صالح.')
+    repository.deleteCategory(id)
   },
   listServices: repository.listServices,
   saveService(input: ServiceInput) {

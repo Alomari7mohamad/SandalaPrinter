@@ -162,7 +162,7 @@ export function NewOrderPage() {
   const numericDiscountValue = discountType === 'PERCENT' ? Math.min(parsedDiscountValue, 100) : Math.min(Math.trunc(parsedDiscountValue), maximumFixedDiscount)
   const effectiveDiscountType: OrderDiscountType = Number.isFinite(numericDiscountValue) && numericDiscountValue > 0 ? discountType : 'NONE'
   const totals = useMemo(() => calculateDraftTotals(items.map((item) => ({ salePrice: item.pricing.salePrice ?? 0, cost: item.pricing.cost ?? 0 })), { type: effectiveDiscountType, value: Number.isFinite(numericDiscountValue) ? numericDiscountValue : 0 }), [items, effectiveDiscountType, numericDiscountValue])
-  const canAdd = Boolean(selected && pricing && !pricing.requiresManualPricing && pricing.salePrice !== null && pricing.cost !== null)
+  const canAdd = Boolean(selected && pricing && !pricing.requiresManualPricing && pricing.salePrice !== null && pricing.cost !== null && pricing.profit !== null && pricing.profitMargin !== null)
   const changeDiscountValue = (value: string) => {
     if (value === '') { setDiscountValue(''); return }
     const numericValue = Number(value)
@@ -217,10 +217,23 @@ export function NewOrderPage() {
     if (items.length === 0) return
     setSaving(true); setError(''); setSavedOrder(null)
     try {
+      const refreshedItems = await Promise.all(items.map(async (item) => {
+        const currentService = services.find((service) => service.id === item.service.id)
+        if (!currentService) throw new Error(`الخدمة «${item.service.nameAr}» لم تعد موجودة. احذفها من الطلب واختر خدمة أخرى.`)
+        const currentPricing = await window.desktopApi.pricing.calculate(currentService.id, item.quantity)
+        if (currentPricing.requiresManualPricing || currentPricing.salePrice === null) throw new Error(`لا توجد قاعدة سعر صالحة لخدمة «${currentService.nameAr}» والكمية المختارة.`)
+        if (currentPricing.cost === null || currentPricing.profit === null || currentPricing.profitMargin === null) throw new Error(`تكلفة خدمة «${currentService.nameAr}» غير محددة. حدّث التكلفة من صفحة الخدمات أولًا.`)
+        return { ...item, service: currentService, pricing: currentPricing }
+      }))
+      setItems(refreshedItems)
+      const refreshedSubtotal = calculateDraftTotals(refreshedItems.map((item) => ({ salePrice: item.pricing.salePrice ?? 0, cost: item.pricing.cost ?? 0 }))).subtotal
+      const refreshedFixedMaximum = Math.floor(refreshedSubtotal * 0.1)
+      const submittedDiscountValue = effectiveDiscountType === 'FIXED' ? Math.min(numericDiscountValue, refreshedFixedMaximum) : numericDiscountValue
+      const submittedDiscountType: OrderDiscountType = submittedDiscountValue > 0 ? effectiveDiscountType : 'NONE'
       const result = await window.desktopApi.orders.create({
-        items: items.map((item) => ({ serviceId: item.service.id, quantity: item.quantity })),
-        discountType: effectiveDiscountType,
-        discountValue: effectiveDiscountType === 'NONE' ? 0 : numericDiscountValue,
+        items: refreshedItems.map((item) => ({ serviceId: item.service.id, quantity: item.quantity })),
+        discountType: submittedDiscountType,
+        discountValue: submittedDiscountType === 'NONE' ? 0 : submittedDiscountValue,
         customerName: customerName.trim() || null,
         customerPhone: customerPhone.trim() || null,
         deliveryAddress: deliveryAddress.trim() || null,

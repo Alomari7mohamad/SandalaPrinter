@@ -1,4 +1,4 @@
-import { Edit3, Eye, FolderPlus, Plus, Search, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Edit3, Eye, FolderCog, FolderPlus, Plus, Search, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ServiceCategoryDto, ServiceDto } from '../../../shared/contracts'
@@ -21,8 +21,10 @@ export function ServicesPage() {
   const [category, setCategory] = useState('all')
   const [status, setStatus] = useState('true')
   const [editing, setEditing] = useState<ServiceDto | null | 'new'>(null)
-  const [addingCategory, setAddingCategory] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<ServiceCategoryDto | null | 'new'>(null)
+  const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [deletingId, setDeletingId] = useState('')
+  const [deletingCategoryId, setDeletingCategoryId] = useState('')
   const load = async () => {
     setLoading(true); setError('')
     try {
@@ -58,15 +60,32 @@ export function ServicesPage() {
     } catch (cause) { setError(getArabicError(cause, 'تعذر حذف الخدمة.')) }
     finally { setDeletingId('') }
   }
+  const removeCategory = async (item: ServiceCategoryDto) => {
+    const itemCount = services.filter((service) => service.categoryId === item.id).length
+    const explanation = itemCount > 0 ? `\nسيبقى ${itemCount} منتجًا أو خدمة محفوظًا وينتقل إلى «بدون تصنيف».` : ''
+    if (!window.confirm(`هل تريد حذف تصنيف «${item.nameAr}»؟${explanation}`)) return
+    setDeletingCategoryId(item.id); setError('')
+    try {
+      await window.desktopApi.catalog.deleteCategory(item.id)
+      if (category === item.id) setCategory('all')
+      window.dispatchEvent(new Event('sandala:catalog-changed'))
+      await load()
+    } catch (cause) { setError(getArabicError(cause, 'تعذر حذف التصنيف.')) }
+    finally { setDeletingCategoryId('') }
+  }
 
   return <div className="page">
-    <PageHeader title="الخدمات والمنتجات" subtitle={`${services.length} عنصر محفوظ في قاعدة البيانات`} action={<div className="page-header-actions"><button className="secondary-button" onClick={() => setAddingCategory(true)}><FolderPlus size={18} /> تصنيف جديد</button><button className="primary-button" onClick={() => setEditing('new')}><Plus size={18} /> إضافة خدمة أو منتج</button></div>} />
+    <PageHeader title="الخدمات والمنتجات" subtitle={`${services.length} عنصر محفوظ في قاعدة البيانات`} action={<div className="page-header-actions"><button className="secondary-button" onClick={() => setEditingCategory('new')}><FolderPlus size={18} /> تصنيف جديد</button><button className="primary-button" onClick={() => setEditing('new')}><Plus size={18} /> إضافة خدمة أو منتج</button></div>} />
     {error && <div className="alert error">{error}</div>}
+    <section className={`panel category-manager-panel${showCategoryManager ? ' open' : ''}`}>
+      <button type="button" className="category-manager-toggle" onClick={() => setShowCategoryManager((current) => !current)}><span><FolderCog size={20} /><span><b>إدارة التصنيفات</b><small>تعديل أسماء التصنيفات أو حذف غير المطلوب منها</small></span></span>{showCategoryManager ? <ChevronUp size={19} /> : <ChevronDown size={19} />}</button>
+      {showCategoryManager && <div className="category-manager-grid">{categories.map((item) => { const count = services.filter((service) => service.categoryId === item.id).length; return <article key={item.id}><span><b>{item.nameAr}</b><small>{count} منتج أو خدمة</small></span><div><button type="button" title="تعديل التصنيف" onClick={() => setEditingCategory(item)}><Edit3 size={16} /></button><button type="button" className="danger" disabled={deletingCategoryId === item.id} title="حذف التصنيف" onClick={() => void removeCategory(item)}><Trash2 size={16} /></button></div></article> })}</div>}
+    </section>
     <section className="panel catalog-panel">
       <div className="filters-bar"><div className="search-field"><Search size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث بالاسم، A4، خرومو، ملون..." /></div><select value={category} onChange={(e) => setCategory(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.nameAr}</option>)}</select><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">كل الحالات</option><option value="true">نشط</option><option value="false">غير نشط</option></select></div>
       {loading ? <div className="table-state">جارٍ تحميل الخدمات...</div> : filtered.length === 0 ? <div className="table-state">لا توجد خدمات مطابقة.</div> : <div className="table-scroll services-table-scroll"><table className="data-table services-pricing-table"><thead><tr><th>الخدمة أو المنتج</th><th>التصنيف</th><th>المواصفات</th><th>التكلفة</th><th>قواعد السعر</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>{filtered.map((service) => <tr key={service.id}><td><b>{service.nameAr}</b>{service.nameHe && <small dir="rtl">{service.nameHe}</small>}</td><td>{service.categoryName}</td><td>{[service.size, service.paperType, service.colorMode, service.unit].filter(Boolean).join(' • ') || '—'}</td><td dir="ltr">{costLabel(service)}</td><td><span className="rules-count">{service.pricingRulesCount}</span></td><td><span className={`badge ${service.active ? 'success' : 'muted'}`}>{service.active ? 'نشط' : 'غير نشط'}</span></td><td><div className="row-actions"><button title="تعديل" onClick={() => setEditing(service)}><Edit3 size={16} /></button><button title={service.active ? 'تعطيل' : 'تفعيل'} onClick={() => void toggle(service)}>{service.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}</button><button title="عرض الأسعار" onClick={() => navigate(`/pricing?service=${service.id}`)}><Eye size={17} /></button><button className="danger" disabled={deletingId === service.id} title="حذف" onClick={() => void remove(service)}><Trash2 size={17} /></button></div></td></tr>)}</tbody></table></div>}
     </section>
     {editing && <ServiceDialog service={editing === 'new' ? undefined : editing} pricingRules={editing === 'new' ? [] : rulesByService[editing.id] ?? []} categories={categories} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void load() }} />}
-    {addingCategory && <CategoryDialog onClose={() => setAddingCategory(false)} onSaved={(saved) => { setCategories((rows) => [...rows, saved]); setCategory(saved.id); setAddingCategory(false) }} />}
+    {editingCategory && <CategoryDialog category={editingCategory === 'new' ? undefined : editingCategory} onClose={() => setEditingCategory(null)} onSaved={(saved) => { setEditingCategory(null); setCategory(saved.id); void load() }} />}
   </div>
 }

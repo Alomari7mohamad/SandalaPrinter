@@ -12,15 +12,39 @@ export function listCategories(): ServiceCategoryDto[] {
   return rows.map((row) => ({ ...row, active: Boolean(row.active) }))
 }
 
-export function saveCategory(nameAr: string): ServiceCategoryDto {
+export function saveCategory(input: { id?: string; nameAr: string }): ServiceCategoryDto {
   const database = getSqlite()
-  const duplicate = database.prepare('SELECT id FROM service_categories WHERE lower(name_ar) = lower(?)').get(nameAr)
-  if (duplicate) throw new Error('يوجد تصنيف بهذا الاسم بالفعل.')
+  const duplicate = database.prepare('SELECT id, active FROM service_categories WHERE lower(name_ar) = lower(?) AND id <> COALESCE(?, \'\')').get(input.nameAr, input.id ?? null) as { id: string; active: number } | undefined
+  if (duplicate?.active) throw new Error('يوجد تصنيف بهذا الاسم بالفعل.')
+  if (input.id) {
+    const result = database.prepare('UPDATE service_categories SET name_ar=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1').run(input.nameAr, input.id)
+    if (result.changes === 0) throw new Error('التصنيف المطلوب غير موجود.')
+    const saved = listCategories().find((category) => category.id === input.id)
+    if (!saved) throw new Error('تعذر قراءة التصنيف بعد حفظه.')
+    return saved
+  }
+  if (duplicate) {
+    database.prepare('UPDATE service_categories SET active=1, name_ar=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.nameAr, duplicate.id)
+    const restored = listCategories().find((category) => category.id === duplicate.id)
+    if (!restored) throw new Error('تعذر استعادة التصنيف.')
+    return restored
+  }
   const id = randomUUID()
   const code = `CUSTOM_${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`
   const sortOrder = Number(database.prepare('SELECT COALESCE(MAX(sort_order), 0) + 10 FROM service_categories').pluck().get())
-  database.prepare('INSERT INTO service_categories (id, name_ar, code, active, sort_order) VALUES (?, ?, ?, 1, ?)').run(id, nameAr, code, sortOrder)
-  return { id, nameAr, code, active: true, sortOrder }
+  database.prepare('INSERT INTO service_categories (id, name_ar, code, active, sort_order) VALUES (?, ?, ?, 1, ?)').run(id, input.nameAr, code, sortOrder)
+  return { id, nameAr: input.nameAr, code, active: true, sortOrder }
+}
+
+export function deleteCategory(id: string): void {
+  const database = getSqlite()
+  database.transaction(() => {
+    const category = database.prepare('SELECT name_ar nameAr FROM service_categories WHERE id=? AND active=1').get(id) as { nameAr: string } | undefined
+    if (!category) throw new Error('التصنيف المطلوب غير موجود.')
+    database.prepare('UPDATE services SET category_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE category_id=?').run(id)
+    database.prepare('UPDATE inventory_items SET category_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE category_id=?').run(id)
+    database.prepare('UPDATE service_categories SET active=0, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(id)
+  })()
 }
 
 export function listServices(): ServiceDto[] {

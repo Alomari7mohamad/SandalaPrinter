@@ -9,6 +9,7 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.dashboard, 'getStats') &&
     hasFunction(value.catalog, 'listCategories') &&
     hasFunction(value.catalog, 'saveCategory') &&
+    hasFunction(value.catalog, 'deleteCategory') &&
     hasFunction(value.catalog, 'listServices') &&
     hasFunction(value.catalog, 'saveService') &&
     hasFunction(value.catalog, 'setServiceActive') &&

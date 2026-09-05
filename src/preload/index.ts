@@ -7,6 +7,7 @@ const api: DesktopApi = {
   catalog: {
     listCategories: () => ipcRenderer.invoke('catalog:list-categories'),
     saveCategory: (input) => ipcRenderer.invoke('catalog:save-category', input),
+    deleteCategory: (id) => ipcRenderer.invoke('catalog:delete-category', id),
     listServices: () => ipcRenderer.invoke('catalog:list-services'),
     saveService: (input) => ipcRenderer.invoke('catalog:save-service', input),
     setServiceActive: (id, active) => ipcRenderer.invoke('catalog:set-service-active', id, active),
