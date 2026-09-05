@@ -9,6 +9,13 @@ describe('تنسيق الأرقام اللاتينية', () => {
 
   it('يعرض العملة بكسور لاتينية واضحة', () => {
     expect(formatCurrency(25.25)).toBe('25.25 ₪')
+    expect(formatCurrency(25.25, 0)).toBe('25 ₪')
+    expect(formatCurrency(25.2, 4)).toBe('25.20 ₪')
+  })
+
+  it('لا يسمح بتعارض الحد الأدنى والأقصى للكسور', () => {
+    expect(() => formatNumber(12.5, 4, 2)).not.toThrow()
+    expect(formatNumber(12.5, 4, 2)).toBe('12.5000')
   })
 
   it('يبقي التاريخ عربيًا مع أرقام لاتينية', () => {
