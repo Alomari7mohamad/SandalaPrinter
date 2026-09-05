@@ -3,7 +3,7 @@ import { getDashboardStats } from './database/dashboard.repository'
 import { getDatabasePath } from './database/client'
 import { catalogService } from './services/catalog.service'
 import type { PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../shared/contracts'
-import type { CreateOrderInput, InventoryAdjustmentInput, InventoryItemInput, InventorySettingsInput, OrderListQuery, PurchaseRequestInput, ReportRangeInput, SupplierInput, WorkLogInput } from '../shared/contracts'
+import type { CreateOrderInput, InventoryAdjustmentInput, InventoryItemInput, InventorySettingsInput, MaterialRequirementInput, OrderListQuery, PurchaseRequestInput, ReportRangeInput, SupplierInput, WorkLogInput } from '../shared/contracts'
 import type { PrintOrderOptions, UpdateSettingsDto } from '../shared/contracts'
 import { orderService } from './services/order.service'
 import { inventoryService } from './services/inventory.service'
@@ -23,6 +23,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('catalog:save-service', (_event, input: ServiceInput) => catalogService.saveService(input))
   ipcMain.handle('catalog:set-service-active', (_event, id: string, active: boolean) => catalogService.setServiceActive(id, active))
   ipcMain.handle('catalog:delete-service', (_event, id: string) => catalogService.deleteService(id))
+  ipcMain.handle('catalog:list-material-requirements', (_event, serviceId: string) => catalogService.listMaterialRequirements(serviceId))
+  ipcMain.handle('catalog:save-material-requirements', (_event, serviceId: string, input: MaterialRequirementInput[]) => catalogService.saveMaterialRequirements(serviceId, input))
   ipcMain.handle('pricing:list-rules', (_event, serviceId: string) => catalogService.listRules(serviceId))
   ipcMain.handle('pricing:save-rule', (_event, input: PricingRuleInput) => catalogService.saveRule(input))
   ipcMain.handle('pricing:set-rule-active', (_event, id: string, active: boolean) => catalogService.setRuleActive(id, active))
@@ -95,6 +97,8 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('catalog:save-service')
   ipcMain.removeHandler('catalog:set-service-active')
   ipcMain.removeHandler('catalog:delete-service')
+  ipcMain.removeHandler('catalog:list-material-requirements')
+  ipcMain.removeHandler('catalog:save-material-requirements')
   ipcMain.removeHandler('pricing:list-rules')
   ipcMain.removeHandler('pricing:save-rule')
   ipcMain.removeHandler('pricing:set-rule-active')

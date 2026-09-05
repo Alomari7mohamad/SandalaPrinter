@@ -3,7 +3,7 @@ import { isDesktopApiAvailable } from './api-guard'
 
 const validApi = () => ({
   app: { getInfo: vi.fn() }, dashboard: { getStats: vi.fn() },
-  catalog: { listCategories: vi.fn(), saveCategory: vi.fn(), deleteCategory: vi.fn(), listServices: vi.fn(), saveService: vi.fn(), setServiceActive: vi.fn(), deleteService: vi.fn() },
+  catalog: { listCategories: vi.fn(), saveCategory: vi.fn(), deleteCategory: vi.fn(), listServices: vi.fn(), saveService: vi.fn(), setServiceActive: vi.fn(), deleteService: vi.fn(), listMaterialRequirements: vi.fn(), saveMaterialRequirements: vi.fn() },
   pricing: { listRules: vi.fn(), saveRule: vi.fn(), setRuleActive: vi.fn(), deleteRule: vi.fn(), calculate: vi.fn() },
   orders: { create: vi.fn(), list: vi.fn(), get: vi.fn(), setPaymentStatus: vi.fn() },
   inventory: { list: vi.fn(), adjust: vi.fn(), updateSettings: vi.fn(), createItem: vi.fn(), deleteItem: vi.fn() },

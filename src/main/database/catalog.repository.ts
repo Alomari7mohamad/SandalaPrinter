@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { PriceRule } from '../../shared/pricing/pricing-types'
-import type { PricingRuleInput, ServiceCategoryDto, ServiceDto, ServiceInput } from '../../shared/contracts'
+import type { MaterialRequirementDto, MaterialRequirementInput, PricingRuleInput, ServiceCategoryDto, ServiceDto, ServiceInput } from '../../shared/contracts'
 import { getSqlite } from './client'
 
 interface CategoryRow { id: string; code: string; nameAr: string; active: number; sortOrder: number }
@@ -122,6 +122,24 @@ export function deleteService(id: string): void {
     const result = database.prepare('DELETE FROM services WHERE id = ?').run(id)
     if (result.changes === 0) throw new Error('الخدمة المطلوبة غير موجودة.')
   })()
+}
+
+export function listMaterialRequirements(serviceId: string): MaterialRequirementDto[] {
+  return getSqlite().prepare(`SELECT r.inventory_item_id inventoryItemId, i.name materialName, i.barcode, i.unit,
+    i.quantity currentQuantity, r.quantity_per_unit quantityPerUnit
+    FROM service_material_requirements r JOIN inventory_items i ON i.id=r.inventory_item_id
+    WHERE r.service_id=? AND i.active=1 ORDER BY i.name`).all(serviceId) as MaterialRequirementDto[]
+}
+
+export function saveMaterialRequirements(serviceId: string, requirements: MaterialRequirementInput[]): MaterialRequirementDto[] {
+  const database=getSqlite()
+  database.transaction(() => {
+    if(!database.prepare('SELECT id FROM services WHERE id=?').get(serviceId)) throw new Error('الخدمة المطلوبة غير موجودة.')
+    database.prepare('DELETE FROM service_material_requirements WHERE service_id=?').run(serviceId)
+    const insert=database.prepare('INSERT INTO service_material_requirements (service_id,inventory_item_id,quantity_per_unit) VALUES (?,?,?)')
+    for(const requirement of requirements) insert.run(serviceId,requirement.inventoryItemId,requirement.quantityPerUnit)
+  })()
+  return listMaterialRequirements(serviceId)
 }
 
 export function listPricingRules(serviceId: string): PriceRule[] {

@@ -11,7 +11,9 @@ const api: DesktopApi = {
     listServices: () => ipcRenderer.invoke('catalog:list-services'),
     saveService: (input) => ipcRenderer.invoke('catalog:save-service', input),
     setServiceActive: (id, active) => ipcRenderer.invoke('catalog:set-service-active', id, active),
-    deleteService: (id) => ipcRenderer.invoke('catalog:delete-service', id)
+    deleteService: (id) => ipcRenderer.invoke('catalog:delete-service', id),
+    listMaterialRequirements: (serviceId) => ipcRenderer.invoke('catalog:list-material-requirements', serviceId),
+    saveMaterialRequirements: (serviceId, input) => ipcRenderer.invoke('catalog:save-material-requirements', serviceId, input)
   },
   pricing: {
     listRules: (serviceId) => ipcRenderer.invoke('pricing:list-rules', serviceId),

@@ -4,7 +4,7 @@ import { getInventoryAlerts } from './inventory-alerts'
 
 const item = (id: string, quantity: number, lowStockThreshold: number): InventoryItemDto => ({
   id, name: id, sku: id, unit: 'قطعة', quantity, lowStockThreshold, purchaseCost: 0,
-  supplierId: null, supplierName: null, reorderPoint: 1, minimumOrderQuantity: 1,
+  supplierId: null, supplierName: null, suppliers: [], barcode: null, itemKind: 'RAW_MATERIAL', reorderPoint: 1, minimumOrderQuantity: 1,
   catalogServiceId: null,
   categoryId: null,
   categoryName: null,

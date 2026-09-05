@@ -6,7 +6,7 @@ import sandalaIcon from '../assets/sandala-icon.png'
 
 const sections = [
   { label: 'العمل اليومي', items: [['/', 'الرئيسية', House], ['/orders', 'الطلبات', ClipboardList]] },
-  { label: 'المنتجات والتشغيل', items: [['/services', 'الخدمات والمنتجات', PackageOpen], ['/pricing', 'الأسعار', Tags], ['/book-printing', 'طباعة الكتب', BookOpenText], ['/inventory', 'المخزون', Boxes], ['/shortages', 'النواقص والطلبيات', ShoppingBasket]] },
+  { label: 'المنتجات والتشغيل', items: [['/services', 'صفحة العمل', PackageOpen], ['/pricing', 'الأسعار', Tags], ['/book-printing', 'طباعة الكتب', BookOpenText], ['/inventory', 'المخزون', Boxes], ['/shortages', 'النواقص والطلبيات', ShoppingBasket]] },
   { label: 'التحليل والنظام', items: [['/profits', 'الأرباح', ChartNoAxesCombined], ['/work-log', 'سجل الدوام', CalendarClock], ['/settings', 'الإعدادات', Settings]] },
 ] as const
 

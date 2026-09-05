@@ -13,6 +13,7 @@ import suppliersShortagesMigration from '../database/migrations/0008_suppliers_s
 import catalogInventoryProductsMigration from '../database/migrations/0009_catalog_inventory_products.sql?raw'
 import inventoryPackagesMigration from '../database/migrations/0010_inventory_packages.sql?raw'
 import inventoryCategoriesMigration from '../database/migrations/0011_inventory_categories.sql?raw'
+import rawMaterialRecipesMigration from '../database/migrations/0013_raw_material_recipes.sql?raw'
 
 const databaseState = vi.hoisted(() => ({ current: undefined as unknown as Database.Database }))
 
@@ -25,7 +26,7 @@ function createDatabase(): Database.Database {
   database.pragma('foreign_keys=ON')
   for (const migration of [initialMigration, phaseTwoMigration, sandalaBrandMigration, orderDeliveryDetailsMigration,
     orderPaidAtMigration, orderBusinessLogoMigration, bilingualServiceNamesMigration, unitCostOnlyMigration,
-    suppliersShortagesMigration, catalogInventoryProductsMigration, inventoryPackagesMigration, inventoryCategoriesMigration]) database.exec(migration)
+    suppliersShortagesMigration, catalogInventoryProductsMigration, inventoryPackagesMigration, inventoryCategoriesMigration, rawMaterialRecipesMigration]) database.exec(migration)
   seedGhassanProducts(database)
   return database
 }
@@ -44,5 +45,14 @@ describe('إنشاء الطلب', () => {
     expect(result).toMatchObject({ orderNumber: 'ORD-000001', customerName: 'زبون عام', total: 9, totalCost: 9, profit: 0 })
     expect(databaseState.current.prepare('SELECT COUNT(*) FROM orders').pluck().get()).toBe(1)
     expect(databaseState.current.prepare('SELECT COUNT(*) FROM order_items').pluck().get()).toBe(1)
+  })
+
+  it('يخصم وصفة المواد الخام مضروبة في كمية الطلب', () => {
+    databaseState.current.prepare(`INSERT INTO inventory_items (id,name,sku,barcode,item_kind,unit,quantity,low_stock_threshold,purchase_cost,reorder_point,minimum_order_quantity,active)
+      VALUES ('raw-paper','ورق A4','RAW-A4','123','RAW_MATERIAL','ورقة',1000,100,0.024,100,1,1)`).run()
+    databaseState.current.prepare(`INSERT INTO service_material_requirements (service_id,inventory_item_id,quantity_per_unit) VALUES ('ghassan-product-078','raw-paper',50)`).run()
+    orderService.create({items:[{serviceId:'ghassan-product-078',quantity:3}],discountType:'NONE',discountValue:0,customerName:null,customerPhone:null,deliveryAddress:null,businessLogoDataUrl:null,notes:null})
+    expect(databaseState.current.prepare("SELECT quantity FROM inventory_items WHERE id='raw-paper'").pluck().get()).toBe(850)
+    expect(databaseState.current.prepare("SELECT quantity FROM inventory_transactions WHERE inventory_item_id='raw-paper' AND reference_type='ORDER'").pluck().get()).toBe(150)
   })
 })

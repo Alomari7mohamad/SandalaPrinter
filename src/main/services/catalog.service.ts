@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { costTypes, pricingRuleTypes, type PriceRule, type PricingResult } from '../../shared/pricing/pricing-types'
 import { calculatePrice } from '../../shared/pricing/pricing-engine'
 import { rangesOverlap, ruleSpecificity } from '../../shared/pricing/pricing-utils'
-import type { PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../../shared/contracts'
+import type { MaterialRequirementInput, PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../../shared/contracts'
 import * as repository from '../database/catalog.repository'
 
 const nullableText = z.string().trim().max(250).nullable()
@@ -29,6 +29,7 @@ const ruleSchema = z.object({
   if (value.fixedPrice !== null && value.unitPrice !== null) context.addIssue({ code: 'custom', message: 'اختر سعرًا ثابتًا أو سعر وحدة، وليس كليهما.' })
   if (value.minQuantity !== null && value.maxQuantity !== null && value.minQuantity > value.maxQuantity) context.addIssue({ code: 'custom', message: 'الحد الأدنى أكبر من الحد الأعلى.' })
 })
+const materialRequirementSchema=z.array(z.object({inventoryItemId:z.string().min(2).max(100),quantityPerUnit:z.number().positive().finite()})).max(100)
 
 function validationError(error: z.ZodError): Error { return new Error(error.issues[0]?.message ?? 'البيانات المدخلة غير صحيحة.') }
 
@@ -53,6 +54,17 @@ export const catalogService = {
   deleteService(id: string) {
     if (!id || id.length > 100) throw new Error('معرّف الخدمة غير صالح.')
     repository.deleteService(id)
+  },
+  listMaterialRequirements(serviceId: string) {
+    if (!serviceId || serviceId.length > 100) throw new Error('معرّف الخدمة غير صالح.')
+    return repository.listMaterialRequirements(serviceId)
+  },
+  saveMaterialRequirements(serviceId: string, requirements: MaterialRequirementInput[]) {
+    if (!serviceId || serviceId.length > 100) throw new Error('معرّف الخدمة غير صالح.')
+    const parsed=materialRequirementSchema.safeParse(requirements)
+    if(!parsed.success) throw validationError(parsed.error)
+    if(new Set(parsed.data.map((item)=>item.inventoryItemId)).size!==parsed.data.length) throw new Error('لا يمكن تكرار المادة الخام في الوصفة.')
+    return repository.saveMaterialRequirements(serviceId,parsed.data)
   },
   listRules: repository.listPricingRules,
   saveRule(input: PricingRuleInput): PriceRule {

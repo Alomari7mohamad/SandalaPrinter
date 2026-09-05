@@ -14,6 +14,8 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.catalog, 'saveService') &&
     hasFunction(value.catalog, 'setServiceActive') &&
     hasFunction(value.catalog, 'deleteService') &&
+    hasFunction(value.catalog, 'listMaterialRequirements') &&
+    hasFunction(value.catalog, 'saveMaterialRequirements') &&
     hasFunction(value.pricing, 'listRules') &&
     hasFunction(value.pricing, 'saveRule') &&
     hasFunction(value.pricing, 'setRuleActive') &&
@@ -27,6 +29,7 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.inventory, 'adjust') &&
     hasFunction(value.inventory, 'updateSettings') &&
     hasFunction(value.inventory, 'createItem') &&
+    hasFunction(value.inventory, 'deleteItem') &&
     hasFunction(value.shortages, 'listSuppliers') &&
     hasFunction(value.shortages, 'saveSupplier') &&
     hasFunction(value.shortages, 'listRequests') &&

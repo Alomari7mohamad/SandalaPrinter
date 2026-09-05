@@ -582,3 +582,11 @@ select option { color: #18394a; background: #fff; font-weight: 650; }
   .work-entry-form .work-date-field, .daily-pay-preview .daily-pay-total { grid-column: auto; }
   .custom-work-range { grid-template-columns: 1fr 1fr; }.custom-work-range .primary-button { grid-column: 1 / -1; }
 }
+/* Raw-material recipes */
+.material-recipe{border:1px solid #d9e4ee;border-radius:16px;background:#f8fbfd;padding:16px;display:grid;gap:14px}
+.material-recipe-heading{display:flex;align-items:end;justify-content:space-between;gap:16px}
+.material-recipe-heading>div{display:grid;gap:4px}.material-recipe-heading small,.recipe-empty,.recipe-row small{color:#64748b;font-size:.86rem}
+.material-recipe-heading select{min-width:260px}.recipe-list{display:grid;gap:9px}.recipe-row{display:grid;grid-template-columns:minmax(190px,1fr) minmax(220px,.8fr) auto;align-items:end;gap:12px;padding:11px;border-radius:12px;background:#fff;border:1px solid #e5edf4}
+.recipe-row>span{display:grid;gap:3px}.recipe-row label{display:grid;grid-template-columns:auto 110px auto;align-items:center;gap:8px}.recipe-row label input{min-width:0}.recipe-row em{font-style:normal;color:#475569}.danger-icon{border:0;background:#fff1f2;color:#dc2626;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
+.supplier-picker{border:1px solid #dbe5ed;border-radius:14px;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.supplier-picker legend{padding:0 8px;font-weight:800;color:#334155}.supplier-picker .checkbox-label{margin:0;background:#f8fafc;border-radius:10px;padding:9px}.supplier-picker .checkbox-label span{display:grid;gap:2px}.supplier-picker small{color:#64748b}
+@media(max-width:760px){.material-recipe-heading{align-items:stretch;flex-direction:column}.material-recipe-heading select{min-width:0;width:100%}.recipe-row{grid-template-columns:1fr}.supplier-picker{grid-template-columns:1fr}}

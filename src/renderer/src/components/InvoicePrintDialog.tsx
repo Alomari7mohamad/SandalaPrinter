@@ -13,7 +13,7 @@ interface InvoicePreferences { language: InvoiceLanguage; pageSize: InvoicePageS
 const STORAGE_KEY = 'sandala:invoice-preferences:v2'
 const initialPreferences: InvoicePreferences = { language: 'ar', pageSize: 'A4', phone: '0552616622', email: 'sandalaprinter@gmail.com' }
 const labels = {
-  ar: { order: 'الطلب', orderNumber: 'رقم الطلب', date: 'التاريخ', customer: 'تفاصيل الزبون', name: 'الاسم', phone: 'الهاتف', address: 'العنوان', notes: 'ملاحظات', logo: 'الشعار', service: 'الخدمة أو المنتج', quantity: 'الكمية', unitPrice: 'سعر الوحدة', lineTotal: 'الإجمالي', subtotal: 'قبل الخصم', discount: 'الخصم', beforeTax: 'السعر قبل الضريبة', tax: 'الضريبة (18%)', final: 'السعر النهائي', payment: 'حالة الدفع', paid: 'مدفوع', unpaid: 'غير مدفوع', thanks: 'شكرًا لاختياركم Sandala Printer' },
+  ar: { order: 'الطلب', orderNumber: 'رقم الطلب', date: 'التاريخ', customer: 'تفاصيل الزبون', name: 'الاسم', phone: 'الهاتف', address: 'العنوان', notes: 'ملاحظات', logo: 'الشعار', service: 'الخدمة', quantity: 'الكمية', unitPrice: 'سعر الوحدة', lineTotal: 'الإجمالي', subtotal: 'قبل الخصم', discount: 'الخصم', beforeTax: 'السعر قبل الضريبة', tax: 'الضريبة (18%)', final: 'السعر النهائي', payment: 'حالة الدفع', paid: 'مدفوع', unpaid: 'غير مدفوع', thanks: 'شكرًا لاختياركم Sandala Printer' },
   he: { order: 'הזמנה', orderNumber: 'מספר הזמנה', date: 'תאריך', customer: 'פרטי לקוח', name: 'שם', phone: 'טלפון', address: 'כתובת', notes: 'הערות', logo: 'לוגו', service: 'שירות או מוצר', quantity: 'כמות', unitPrice: 'מחיר ליחידה', lineTotal: 'סה״כ', subtotal: 'לפני הנחה', discount: 'הנחה', beforeTax: 'מחיר לפני מע״מ', tax: 'מע״מ (18%)', final: 'מחיר סופי', payment: 'מצב תשלום', paid: 'שולם', unpaid: 'לא שולם', thanks: 'תודה שבחרתם ב-Sandala Printer' }
 } as const
 

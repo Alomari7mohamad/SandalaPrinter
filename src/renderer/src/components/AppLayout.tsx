@@ -34,6 +34,6 @@ export function AppLayout() {
 }
 
 const routeContext: Record<string, string> = {
-  '/': 'مركز المتابعة', '/new-order': 'إنشاء طلب', '/orders': 'إدارة الطلبات', '/services': 'دليل الخدمات والمنتجات',
+  '/': 'مركز المتابعة', '/new-order': 'إنشاء طلب', '/orders': 'إدارة الطلبات', '/services': 'صفحة العمل',
   '/pricing': 'إدارة التسعير', '/inventory': 'إدارة المخزون', '/shortages': 'المشتريات والنواقص', '/profits': 'التحليل المالي', '/work-log': 'دوام صاحب المطبعة', '/settings': 'إعدادات النظام',
 }
