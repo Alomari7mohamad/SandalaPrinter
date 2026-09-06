@@ -97,7 +97,7 @@ export function initializeDatabase() {
   sqlite.prepare(`
     UPDATE inventory_items
     SET raw_material_category_id = 'raw-category-paper'
-    WHERE item_kind = 'RAW_MATERIAL'
+    WHERE active = 1
       AND raw_material_category_id IS NULL
       AND (
         name LIKE '%ورق%'
@@ -112,7 +112,7 @@ export function initializeDatabase() {
   sqlite.prepare(`
     UPDATE inventory_items
     SET raw_material_category_id = 'raw-category-general'
-    WHERE item_kind = 'RAW_MATERIAL'
+    WHERE active = 1
       AND raw_material_category_id IS NULL
   `).run()
   return drizzle(sqlite, { schema })
