@@ -10,6 +10,7 @@ const adjustmentSchema = z.object({
 })
 const settingsSchema = z.object({
   itemId: z.string().min(2).max(100),
+  name: z.string().trim().min(2, 'اسم المادة الخام قصير جدًا.').max(150).optional(),
   lowStockThreshold: z.number().min(0).finite(),
   purchaseCost: z.number().min(0).finite(),
   supplierId: z.string().min(2).nullable(),

@@ -198,7 +198,7 @@ export interface InventoryAdjustmentInput {
   quantityMode?: 'UNIT' | 'PACKAGE'
   notes: string | null
 }
-export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; supplierIds?: string[]; barcode?: string | null; rawMaterialCategoryId?: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
+export interface InventorySettingsInput { itemId: string; name?: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; supplierIds?: string[]; barcode?: string | null; rawMaterialCategoryId?: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
 export interface InventoryItemInput { name: string; sku: string | null; barcode?: string | null; itemKind?: 'STOCK_ITEM' | 'RAW_MATERIAL'; unit: string; quantity: number; purchaseCost: number; supplierId?: string | null; supplierIds?: string[]; categoryId?: string | null; rawMaterialCategoryId?: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
 
 export interface SupplierDto { id: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null; active: boolean; productCount: number }

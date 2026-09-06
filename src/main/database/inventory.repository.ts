@@ -89,8 +89,8 @@ export function adjustInventory(input: InventoryAdjustmentInput): InventoryItemD
 export function updateInventorySettings(input: InventorySettingsInput): InventoryItemDto {
   const database = getSqlite()
   database.transaction(() => {
-    const result = database.prepare(`UPDATE inventory_items SET low_stock_threshold=?, purchase_cost=?, supplier_id=?, barcode=COALESCE(?,barcode), raw_material_category_id=COALESCE(?,raw_material_category_id), reorder_point=?, minimum_order_quantity=?, package_enabled=?, package_name=?, units_per_package=?, package_price=?, package_notes=?, reorder_package_count=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1`)
-      .run(input.lowStockThreshold, input.purchaseCost, input.supplierId, input.barcode ?? null, input.rawMaterialCategoryId ?? null, input.reorderPoint, input.minimumOrderQuantity, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount, input.itemId)
+    const result = database.prepare(`UPDATE inventory_items SET name=COALESCE(?,name), low_stock_threshold=?, purchase_cost=?, supplier_id=?, barcode=COALESCE(?,barcode), raw_material_category_id=COALESCE(?,raw_material_category_id), reorder_point=?, minimum_order_quantity=?, package_enabled=?, package_name=?, units_per_package=?, package_price=?, package_notes=?, reorder_package_count=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1`)
+      .run(input.name, input.lowStockThreshold, input.purchaseCost, input.supplierId, input.barcode ?? null, input.rawMaterialCategoryId ?? null, input.reorderPoint, input.minimumOrderQuantity, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount, input.itemId)
     if (result.changes === 0) throw new Error('عنصر المخزون غير موجود.')
     replaceItemSuppliers(input.itemId, input.supplierIds ?? (input.supplierId ? [input.supplierId] : []))
   })()

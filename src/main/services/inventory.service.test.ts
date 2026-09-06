@@ -27,4 +27,9 @@ describe('حذف منتج المخزون', () => {
     expect(() => inventoryService.deleteItem(' ')).toThrow()
     expect(repository.deleteInventoryItem).not.toHaveBeenCalled()
   })
+
+  it('يحفظ الاسم الجديد ضمن إعدادات المادة الخام', () => {
+    inventoryService.updateSettings({ itemId: 'inv-paper-a4', name: 'ورق أبيض A4', lowStockThreshold: 500, purchaseCost: 0.024, supplierId: null, supplierIds: [], rawMaterialCategoryId: 'raw-category-paper', reorderPoint: 500, minimumOrderQuantity: 1, packageEnabled: true, packageName: 'رزمة', unitsPerPackage: 500, packagePrice: 12, packageNotes: null, reorderPackageCount: 1 })
+    expect(repository.updateInventorySettings).toHaveBeenCalledWith(expect.objectContaining({ itemId: 'inv-paper-a4', name: 'ورق أبيض A4' }))
+  })
 })
