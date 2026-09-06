@@ -62,7 +62,7 @@ export function ServicesPage() {
   }
   const removeCategory = async (item: ServiceCategoryDto) => {
     const itemCount = services.filter((service) => service.categoryId === item.id).length
-    const explanation = itemCount > 0 ? `\nسيبقى ${itemCount} منتجًا أو خدمة محفوظًا وينتقل إلى «بدون تصنيف».` : ''
+    const explanation = itemCount > 0 ? `\nستبقى ${itemCount} خدمة محفوظة وتنتقل إلى «بدون تصنيف».` : ''
     if (!window.confirm(`هل تريد حذف تصنيف «${item.nameAr}»؟${explanation}`)) return
     setDeletingCategoryId(item.id); setError('')
     try {
@@ -75,7 +75,7 @@ export function ServicesPage() {
   }
 
   return <div className="page">
-    <PageHeader title="صفحة العمل" subtitle={`${services.length} خدمة محفوظة في قاعدة البيانات`} action={<div className="page-header-actions"><button className="secondary-button" onClick={() => setEditingCategory('new')}><FolderPlus size={18} /> تصنيف جديد</button><button className="primary-button" onClick={() => setEditing('new')}><Plus size={18} /> إضافة منتج</button></div>} />
+    <PageHeader title="صفحة العمل" subtitle={`${services.length} خدمة محفوظة في قاعدة البيانات`} action={<div className="page-header-actions"><button className="secondary-button" onClick={() => setEditingCategory('new')}><FolderPlus size={18} /> تصنيف جديد</button><button className="primary-button" onClick={() => setEditing('new')}><Plus size={18} /> إضافة خدمة</button></div>} />
     {error && <div className="alert error">{error}</div>}
     <section className={`panel category-manager-panel${showCategoryManager ? ' open' : ''}`}>
       <button type="button" className="category-manager-toggle" onClick={() => setShowCategoryManager((current) => !current)}><span><FolderCog size={20} /><span><b>إدارة التصنيفات</b><small>تعديل أسماء التصنيفات أو حذف غير المطلوب منها</small></span></span>{showCategoryManager ? <ChevronUp size={19} /> : <ChevronDown size={19} />}</button>

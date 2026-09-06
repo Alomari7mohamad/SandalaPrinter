@@ -100,13 +100,13 @@ export function initializeDatabase() {
     WHERE item_kind = 'RAW_MATERIAL'
       AND raw_material_category_id IS NULL
       AND (
-        name_ar LIKE '%ورق%'
-        OR name_ar LIKE '%بروستول%'
-        OR name_ar LIKE '%خرومو%'
-        OR name_ar LIKE '%كرتون%'
-        OR name_ar LIKE '%ملصقات%'
-        OR lower(name_ar) LIKE '%ncr%'
-        OR name_ar LIKE '%سبليميشن%'
+        name LIKE '%ورق%'
+        OR name LIKE '%بروستول%'
+        OR name LIKE '%خرومو%'
+        OR name LIKE '%كرتون%'
+        OR name LIKE '%ملصقات%'
+        OR lower(name) LIKE '%ncr%'
+        OR name LIKE '%سبليميشن%'
       )
   `).run()
   sqlite.prepare(`

@@ -42,7 +42,6 @@ export function deleteCategory(id: string): void {
     const category = database.prepare('SELECT name_ar nameAr FROM service_categories WHERE id=? AND active=1').get(id) as { nameAr: string } | undefined
     if (!category) throw new Error('التصنيف المطلوب غير موجود.')
     database.prepare('UPDATE services SET category_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE category_id=?').run(id)
-    database.prepare('UPDATE inventory_items SET category_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE category_id=?').run(id)
     database.prepare('UPDATE service_categories SET active=0, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(id)
   })()
 }
@@ -51,12 +50,11 @@ export function listServices(): ServiceDto[] {
   const rows = getSqlite().prepare(`
     SELECT s.id, s.code, s.name_ar nameAr, s.name_he nameHe, s.category_id categoryId, COALESCE(c.name_ar, 'بدون تصنيف') categoryName,
       s.material_type paperType, s.size, s.color_mode colorMode, s.coverage, s.unit,
-      s.item_type itemType, s.supplier_id supplierId, sup.company_name supplierName,
+      'SERVICE' itemType, NULL supplierId, NULL supplierName,
       s.reorder_point reorderPoint, s.minimum_order_quantity minimumOrderQuantity, s.cost_type costType,
       s.unit_cost unitCost, s.cost_batch_size costBatchSize, s.active, s.notes,
       COUNT(pr.id) pricingRulesCount, s.created_at createdAt, s.updated_at updatedAt
     FROM services s LEFT JOIN service_categories c ON c.id = s.category_id
-    LEFT JOIN suppliers sup ON sup.id = s.supplier_id
     LEFT JOIN pricing_rules pr ON pr.service_id = s.id
     WHERE s.code NOT LIKE 'ARCHIVED-%'
     GROUP BY s.id ORDER BY c.sort_order, s.name_ar
@@ -73,26 +71,11 @@ export function saveService(input: ServiceInput): ServiceDto {
   const id = input.id ?? randomUUID()
   database.transaction(() => {
     if (input.id) {
-      database.prepare(`UPDATE services SET code=?, name_ar=?, name_he=?, category_id=?, material_type=?, size=?, color_mode=?, coverage=?, unit=?, item_type=?, supplier_id=?, reorder_point=?, minimum_order_quantity=?, cost_type=?, unit_cost=?, cost_batch_size=?, active=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-        .run(input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.itemType, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes, id)
+      database.prepare(`UPDATE services SET code=?, name_ar=?, name_he=?, category_id=?, material_type=?, size=?, color_mode=?, coverage=?, unit=?, item_type='SERVICE', supplier_id=NULL, reorder_point=?, minimum_order_quantity=?, cost_type=?, unit_cost=?, cost_batch_size=?, active=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .run(input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes, id)
     } else {
-      database.prepare(`INSERT INTO services (id, code, name_ar, name_he, category_id, material_type, size, color_mode, coverage, unit, item_type, supplier_id, reorder_point, minimum_order_quantity, cost_type, unit_cost, cost_batch_size, cost_calculation, sale_calculation, active, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COST_STRATEGY', 'PRICING_RULE', ?, ?)`)
-        .run(id, input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.itemType, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes)
-    }
-
-    const linked = database.prepare('SELECT id FROM inventory_items WHERE catalog_service_id = ?').get(id) as { id: string } | undefined
-    if (input.itemType === 'PRODUCT') {
-      if (linked) {
-        database.prepare(`UPDATE inventory_items SET name=?, sku=?, unit=?, purchase_cost=?, supplier_id=?, category_id=?, reorder_point=?, minimum_order_quantity=?, active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-          .run(input.nameAr, input.code, input.unit, input.unitCost ?? 0, input.supplierId, input.categoryId, input.reorderPoint, input.minimumOrderQuantity, input.active ? 1 : 0, linked.id)
-      } else {
-        database.prepare(`INSERT INTO inventory_items (id, name, sku, unit, quantity, low_stock_threshold, purchase_cost, supplier_id, category_id, reorder_point, minimum_order_quantity, catalog_service_id, active)
-          VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)`)
-          .run(randomUUID(), input.nameAr, input.code, input.unit, input.reorderPoint, input.unitCost ?? 0, input.supplierId, input.categoryId, input.reorderPoint, input.minimumOrderQuantity, id, input.active ? 1 : 0)
-      }
-    } else if (linked) {
-      database.prepare("DELETE FROM purchase_requests WHERE inventory_item_id = ?").run(linked.id)
-      database.prepare('UPDATE inventory_items SET active=0, catalog_service_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(linked.id)
+      database.prepare(`INSERT INTO services (id, code, name_ar, name_he, category_id, material_type, size, color_mode, coverage, unit, item_type, supplier_id, reorder_point, minimum_order_quantity, cost_type, unit_cost, cost_batch_size, cost_calculation, sale_calculation, active, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'SERVICE', NULL, ?, ?, ?, ?, ?, 'COST_STRATEGY', 'PRICING_RULE', ?, ?)`)
+        .run(id, input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes)
     }
   })()
   const saved = getService(id)
@@ -105,7 +88,6 @@ export function setServiceActive(id: string, active: boolean): void {
   database.transaction(() => {
     const result = database.prepare('UPDATE services SET active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(active ? 1 : 0, id)
     if (result.changes === 0) throw new Error('الخدمة المطلوبة غير موجودة.')
-    database.prepare('UPDATE inventory_items SET active=?, updated_at=CURRENT_TIMESTAMP WHERE catalog_service_id=?').run(active ? 1 : 0, id)
   })()
 }
 
@@ -113,10 +95,7 @@ export function deleteService(id: string): void {
   const database = getSqlite()
   database.transaction(() => {
     const linkedInventory = database.prepare('SELECT id FROM inventory_items WHERE catalog_service_id=?').get(id) as { id: string } | undefined
-    if (linkedInventory) {
-      database.prepare('DELETE FROM purchase_requests WHERE inventory_item_id=?').run(linkedInventory.id)
-      database.prepare('UPDATE inventory_items SET active=0, catalog_service_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(linkedInventory.id)
-    }
+    if (linkedInventory) database.prepare('UPDATE inventory_items SET catalog_service_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(linkedInventory.id)
     database.prepare('UPDATE order_items SET service_id = NULL WHERE service_id = ?').run(id)
     database.prepare('DELETE FROM pricing_rules WHERE service_id = ?').run(id)
     const result = database.prepare('DELETE FROM services WHERE id = ?').run(id)

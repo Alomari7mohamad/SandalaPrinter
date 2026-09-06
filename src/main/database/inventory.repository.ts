@@ -93,8 +93,6 @@ export function updateInventorySettings(input: InventorySettingsInput): Inventor
       .run(input.lowStockThreshold, input.purchaseCost, input.supplierId, input.barcode ?? null, input.rawMaterialCategoryId ?? null, input.reorderPoint, input.minimumOrderQuantity, input.packageEnabled ? 1 : 0, input.packageName, input.unitsPerPackage, input.packagePrice, input.packageNotes, input.reorderPackageCount, input.itemId)
     if (result.changes === 0) throw new Error('عنصر المخزون غير موجود.')
     replaceItemSuppliers(input.itemId, input.supplierIds ?? (input.supplierId ? [input.supplierId] : []))
-    database.prepare(`UPDATE services SET unit_cost=?, supplier_id=?, reorder_point=?, minimum_order_quantity=?, updated_at=CURRENT_TIMESTAMP WHERE id=(SELECT catalog_service_id FROM inventory_items WHERE id=?)`)
-      .run(input.purchaseCost, input.supplierId, input.reorderPoint, input.minimumOrderQuantity, input.itemId)
   })()
   const saved = getInventoryItem(input.itemId)
   if (!saved) throw new Error('تعذر حفظ إعدادات المخزون.')

@@ -12,7 +12,7 @@ const ruleNames: Record<PriceRule['ruleType'], string> = { EXACT_QUANTITY: 'كم
 const quantityLabel = (rule: PriceRule) => rule.exactQuantity !== null ? String(rule.exactQuantity) : rule.minQuantity !== null && rule.maxQuantity !== null ? `${rule.minQuantity} – ${rule.maxQuantity}` : rule.minQuantity !== null ? `${rule.minQuantity} فأكثر` : rule.maxQuantity !== null ? `حتى ${rule.maxQuantity}` : 'كل الكميات'
 const priceLabel = (rule: PriceRule) => rule.unitPrice !== null ? `${rule.unitPrice} ₪ / وحدة` : `${rule.fixedPrice ?? 0} ₪`
 const money = (value: number | null) => value === null ? 'غير محدد' : formatCurrency(value, 4)
-const serviceInput = (service: ServiceDto, cost: number | null): ServiceInput => ({ id: service.id, code: service.code, nameAr: service.nameAr, nameHe: service.nameHe, categoryId: service.categoryId ?? '', paperType: service.paperType, size: service.size, colorMode: service.colorMode, coverage: service.coverage, unit: service.unit, itemType: service.itemType, supplierId: service.supplierId, reorderPoint: service.reorderPoint, minimumOrderQuantity: service.minimumOrderQuantity, costType: 'PER_UNIT', unitCost: cost, costBatchSize: null, active: service.active, notes: service.notes })
+const serviceInput = (service: ServiceDto, cost: number | null): ServiceInput => ({ id: service.id, code: service.code, nameAr: service.nameAr, nameHe: service.nameHe, categoryId: service.categoryId ?? '', paperType: service.paperType, size: service.size, colorMode: service.colorMode, coverage: service.coverage, unit: service.unit, itemType: 'SERVICE', supplierId: null, reorderPoint: service.reorderPoint, minimumOrderQuantity: service.minimumOrderQuantity, costType: 'PER_UNIT', unitCost: cost, costBatchSize: null, active: service.active, notes: service.notes })
 const categoryKey = (service: ServiceDto) => service.categoryId ?? '__uncategorized__'
 
 export function PricingPage() {
@@ -80,11 +80,11 @@ export function PricingPage() {
     {error && <div className="alert error">{error}</div>}
     {services.length === 0 ? <div className="panel table-state">لا توجد خدمات. أضف خدمة أولًا.</div> : <>
       <section className="panel pricing-selector-panel">
-        <div className="pricing-selector-heading"><span><Layers3 size={20} /></span><div><h2>حدد الخدمة التي تريد تسعيرها</h2><p>اختر الفئة أولًا، ثم ابحث أو اختر المنتج أو الخدمة.</p></div></div>
+        <div className="pricing-selector-heading"><span><Layers3 size={20} /></span><div><h2>حدد الخدمة التي تريد تسعيرها</h2><p>اختر التصنيف أولًا، ثم ابحث عن الخدمة.</p></div></div>
         <div className="pricing-selector-fields">
           <label><span><b>1</b> الفئة</span><select value={selectedCategoryKey} onChange={(event) => { setServiceSearch(''); const firstService = serviceGroups.find((group) => group.key === event.target.value)?.services[0]; if (firstService) setParams({ service: firstService.id }) }}>{serviceGroups.map((group) => <option key={group.key} value={group.key}>{group.label}</option>)}</select></label>
           <label className="pricing-service-search"><span><Search size={15} /> بحث داخل الفئة</span><div><Search size={17} /><input value={serviceSearch} onChange={(event) => setServiceSearch(event.target.value)} placeholder="اكتب اسم الخدمة..." /></div></label>
-          <label><span><b>2</b> المنتج أو الخدمة</span><select value={selectedId} onChange={(event) => setParams({ service: event.target.value })}>{visibleCategoryServices.length === 0 && <option value={selectedId}>لا توجد نتائج مطابقة</option>}{visibleCategoryServices.map((service) => <option key={service.id} value={service.id}>{service.nameAr}</option>)}</select></label>
+          <label><span><b>2</b> الخدمة</span><select value={selectedId} onChange={(event) => setParams({ service: event.target.value })}>{visibleCategoryServices.length === 0 && <option value={selectedId}>لا توجد نتائج مطابقة</option>}{visibleCategoryServices.map((service) => <option key={service.id} value={service.id}>{service.nameAr}</option>)}</select></label>
         </div>
       </section>
       {selected && <>

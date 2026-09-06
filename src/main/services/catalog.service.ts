@@ -14,8 +14,6 @@ const serviceSchema = z.object({
   itemType: z.enum(['SERVICE', 'PRODUCT']), supplierId: z.string().min(2).nullable(),
   reorderPoint: z.number().nonnegative().finite(), minimumOrderQuantity: z.number().positive().finite(),
   unitCost: z.number().nonnegative().nullable(), costBatchSize: z.number().positive().nullable(), active: z.boolean(), notes: z.string().trim().max(1000).nullable()
-}).superRefine((value, context) => {
-  if (!value.id && value.itemType === 'PRODUCT' && !value.supplierId) context.addIssue({ code: 'custom', message: 'يجب اختيار التاجر للمنتج.' })
 })
 const ruleSchema = z.object({
   id: z.string().optional(), serviceId: z.string().min(2), ruleType: z.enum(pricingRuleTypes),
@@ -48,7 +46,7 @@ export const catalogService = {
   saveService(input: ServiceInput) {
     const parsed = serviceSchema.safeParse(input)
     if (!parsed.success) throw validationError(parsed.error)
-    return repository.saveService({ ...parsed.data, costType: 'PER_UNIT', costBatchSize: null })
+    return repository.saveService({ ...parsed.data, itemType: 'SERVICE', supplierId: null, costType: 'PER_UNIT', costBatchSize: null })
   },
   setServiceActive(id: string, active: boolean) { repository.setServiceActive(id, active) },
   deleteService(id: string) {

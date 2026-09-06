@@ -55,7 +55,7 @@ export function InventoryPage() {
     setLoading(true); setError('')
     try {
       const [stock, traders, groups] = await Promise.all([window.desktopApi.inventory.list(), window.desktopApi.shortages.listSuppliers(),window.desktopApi.inventory.listCategories()])
-      setItems(stock.filter((item) => item.itemKind === 'RAW_MATERIAL')); setSuppliers(traders);setCategories(groups);setNewItem((current)=>({...current,rawMaterialCategoryId:current.rawMaterialCategoryId||groups[0]?.id||''}))
+      setItems(stock); setSuppliers(traders);setCategories(groups);setNewItem((current)=>({...current,rawMaterialCategoryId:current.rawMaterialCategoryId||groups[0]?.id||''}))
     } catch (cause) { setError(getArabicError(cause, 'تعذر تحميل المواد الخام.')) }
     finally { setLoading(false) }
   }
