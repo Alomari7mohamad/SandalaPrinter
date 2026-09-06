@@ -8,7 +8,10 @@ export function UpdateNotification() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    void window.desktopApi.updates.getStatus().then(setStatus)
+    void Promise.all([window.desktopApi.updates.getSettings(),window.desktopApi.updates.getStatus()]).then(([settings,current])=>{
+      setStatus(current)
+      if(settings.autoCheck && ['idle','not-available','error'].includes(current.state)) void window.desktopApi.updates.check().then(setStatus).catch(()=>undefined)
+    })
     return window.desktopApi.updates.onStatusChanged(setStatus)
   }, [])
 

@@ -1,9 +1,11 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Notification } from 'electron'
 import { DEFAULT_UPDATE_FEED_URL, type UpdateSettingsDto, type UpdateStatusDto } from '../../shared/contracts'
 import * as settingsRepository from '../database/update-settings.repository'
 
 let initialized = false
 let autoUpdater: typeof import('electron-updater')['autoUpdater'] | undefined
+let checkingPromise: Promise<UpdateStatusDto> | null = null
+let lastNotifiedVersion: string | null = null
 let status: UpdateStatusDto = {
   state: 'idle', currentVersion: app.getVersion(), availableVersion: null, progress: null, message: 'جاهز لفحص التحديثات.'
 }
@@ -11,6 +13,12 @@ let status: UpdateStatusDto = {
 function publish(next: Partial<UpdateStatusDto>): UpdateStatusDto {
   status = { ...status, ...next, currentVersion: app.getVersion() }
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send('updates:status-changed', status)
+  if (app.isPackaged && status.state === 'available' && status.availableVersion && status.availableVersion !== lastNotifiedVersion && Notification.isSupported()) {
+    lastNotifiedVersion = status.availableVersion
+    const notification = new Notification({ title: 'تحديث جديد لـ Sandala Printer', body: `الإصدار ${status.availableVersion} متاح الآن. افتح التطبيق لتنزيله وتثبيته.` })
+    notification.on('click', () => { const window=BrowserWindow.getAllWindows()[0]; if(window){ if(window.isMinimized()) window.restore(); window.show(); window.focus() } })
+    notification.show()
+  }
   return status
 }
 
@@ -43,7 +51,8 @@ export async function initializeUpdateService(): Promise<void> {
   autoUpdater.autoDownload = false
   // Install only after the explicit button action. Installing on an ordinary
   // quit can leave an assisted NSIS update waiting without reopening the app.
-  autoUpdater.autoInstallOnAppQuit = false
+  // إذا أُغلق التطبيق بعد اكتمال التنزيل، ثبّت التحديث أيضاً كمسار احتياطي.
+  autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.autoRunAppAfterInstall = true
   autoUpdater.on('checking-for-update', () => publish({ state: 'checking', progress: null, message: 'جارٍ البحث عن تحديث...' }))
   autoUpdater.on('update-available', (info) => publish({ state: 'available', availableVersion: info.version, progress: null, message: `يتوفر تحديث جديد: الإصدار ${info.version}` }))
@@ -52,11 +61,13 @@ export async function initializeUpdateService(): Promise<void> {
   autoUpdater.on('update-downloaded', (info) => publish({ state: 'downloaded', availableVersion: info.version, progress: 100, message: 'اكتمل تنزيل التحديث وأصبح جاهزًا للتثبيت.' }))
   autoUpdater.on('error', () => publish({ state: 'error', progress: null, message: 'تعذر الاتصال بمصدر التحديث أو التحقق من ملف الإصدار.' }))
 
-  const settings = settingsRepository.getUpdateSettings()
+  const settings = settingsRepository.ensureUpdateSettings()
   if (app.isPackaged && settings.autoCheck && settings.feedUrl) {
     configureFeed(settings.feedUrl)
-    const timer = setTimeout(() => { void checkForUpdates() }, 8000)
-    timer.unref()
+    const initialTimer = setTimeout(() => { void checkForUpdates() }, 1500)
+    initialTimer.unref()
+    const periodicTimer = setInterval(() => { void checkForUpdates() }, 6 * 60 * 60 * 1000)
+    periodicTimer.unref()
   }
 }
 
@@ -67,18 +78,23 @@ export function saveSettings(input: UpdateSettingsDto): UpdateSettingsDto {
   const settings = validateSettings(input)
   const saved = settingsRepository.saveUpdateSettings(settings)
   if (saved.feedUrl) configureFeed(saved.feedUrl)
-  publish({ state: 'idle', availableVersion: null, progress: null, message: 'تم حفظ إعدادات التحديث.' })
+  // لا نمسح نتيجة فحص أو تنزيل قائم عند حفظ الخيارات.
+  if (status.state === 'idle' || status.state === 'not-available' || status.state === 'disabled' || status.state === 'error') {
+    publish({ message: 'تم حفظ إعدادات التحديث.' })
+  }
+  if (app.isPackaged && saved.autoCheck) setTimeout(() => { void checkForUpdates() }, 0)
   return saved
 }
 
 export async function checkForUpdates(): Promise<UpdateStatusDto> {
+  if (checkingPromise) return checkingPromise
   const settings = settingsRepository.getUpdateSettings()
   if (!app.isPackaged) return publish({ state: 'disabled', message: 'فحص التحديثات يعمل بعد تثبيت نسخة Windows النهائية.' })
   if (!autoUpdater) return publish({ state: 'error', message: 'خدمة التحديث غير متاحة حاليًا.' })
   if (!settings.feedUrl) return publish({ state: 'disabled', message: 'أضف رابط مصدر التحديث في الإعدادات أولًا.' })
   configureFeed(settings.feedUrl)
-  await autoUpdater.checkForUpdates()
-  return status
+  checkingPromise=(async()=>{ try { await autoUpdater?.checkForUpdates(); return status } finally { checkingPromise=null } })()
+  return checkingPromise
 }
 
 export async function downloadUpdate(): Promise<void> {

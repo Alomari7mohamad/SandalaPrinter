@@ -11,6 +11,17 @@ export function getUpdateSettings(): UpdateSettingsDto {
   return { feedUrl: values.get(FEED_URL_KEY)?.trim() || DEFAULT_UPDATE_FEED_URL, autoCheck: values.get(AUTO_CHECK_KEY) !== 'false' }
 }
 
+export function ensureUpdateSettings(): UpdateSettingsDto {
+  const database = getSqlite()
+  const defaults = getUpdateSettings()
+  const insert = database.prepare('INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)')
+  database.transaction(() => {
+    insert.run(FEED_URL_KEY, defaults.feedUrl)
+    insert.run(AUTO_CHECK_KEY, defaults.autoCheck ? 'true' : 'false')
+  })()
+  return getUpdateSettings()
+}
+
 export function saveUpdateSettings(settings: UpdateSettingsDto): UpdateSettingsDto {
   const database = getSqlite()
   const save = database.prepare(`INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`)
