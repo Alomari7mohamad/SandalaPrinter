@@ -26,6 +26,9 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.orders, 'get') &&
     hasFunction(value.orders, 'setPaymentStatus') &&
     hasFunction(value.inventory, 'list') &&
+    hasFunction(value.inventory, 'listCategories') &&
+    hasFunction(value.inventory, 'saveCategory') &&
+    hasFunction(value.inventory, 'deleteCategory') &&
     hasFunction(value.inventory, 'adjust') &&
     hasFunction(value.inventory, 'updateSettings') &&
     hasFunction(value.inventory, 'createItem') &&

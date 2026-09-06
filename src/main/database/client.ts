@@ -18,6 +18,7 @@ import inventoryPackagesMigration from './migrations/0010_inventory_packages.sql
 import inventoryCategoriesMigration from './migrations/0011_inventory_categories.sql?raw'
 import ownerWorkLogsMigration from './migrations/0012_owner_work_logs.sql?raw'
 import rawMaterialRecipesMigration from './migrations/0013_raw_material_recipes.sql?raw'
+import rawMaterialCategoriesMigration from './migrations/0014_raw_material_categories.sql?raw'
 import { seedCorePricingData } from './seed'
 import { seedInventoryItems } from './inventory.seed'
 import { seedGhassanProducts } from './ghassan-products.seed'
@@ -80,6 +81,9 @@ export function initializeDatabase() {
   if (schemaVersion < 14) {
     sqlite.transaction(() => sqlite?.exec(rawMaterialRecipesMigration))()
   }
+  if (schemaVersion < 15) {
+    sqlite.transaction(() => sqlite?.exec(rawMaterialCategoriesMigration))()
+  }
   seedCorePricingData(sqlite)
   seedInventoryItems(sqlite)
   seedGhassanProducts(sqlite)
@@ -88,6 +92,29 @@ export function initializeDatabase() {
   seedCatalogInventorySync(sqlite)
   // المواد الأساسية المضمنة مع التطبيق تبدأ بالبادئة inv-، باستثناء بضائع غسان الجاهزة للبيع.
   sqlite.prepare("UPDATE inventory_items SET item_kind='RAW_MATERIAL' WHERE id LIKE 'inv-%' AND id NOT LIKE 'inv-ghassan-product-%'").run()
+  // تُنشأ البيانات الافتراضية بعد الترحيلات في التثبيت الجديد، لذلك نضمن إسنادها
+  // إلى تصنيف مناسب هنا أيضاً. لا نغيّر أي تصنيف اختاره المستخدم مسبقاً.
+  sqlite.prepare(`
+    UPDATE inventory_items
+    SET raw_material_category_id = 'raw-category-paper'
+    WHERE item_kind = 'RAW_MATERIAL'
+      AND raw_material_category_id IS NULL
+      AND (
+        name_ar LIKE '%ورق%'
+        OR name_ar LIKE '%بروستول%'
+        OR name_ar LIKE '%خرومو%'
+        OR name_ar LIKE '%كرتون%'
+        OR name_ar LIKE '%ملصقات%'
+        OR lower(name_ar) LIKE '%ncr%'
+        OR name_ar LIKE '%سبليميشن%'
+      )
+  `).run()
+  sqlite.prepare(`
+    UPDATE inventory_items
+    SET raw_material_category_id = 'raw-category-general'
+    WHERE item_kind = 'RAW_MATERIAL'
+      AND raw_material_category_id IS NULL
+  `).run()
   return drizzle(sqlite, { schema })
 }
 

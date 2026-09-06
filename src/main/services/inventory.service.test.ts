@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const repository = vi.hoisted(() => ({
   listInventoryItems: vi.fn(() => []),
+  listRawMaterialCategories:vi.fn(()=>[]),
+  saveRawMaterialCategory:vi.fn(),
+  deleteRawMaterialCategory:vi.fn(),
   adjustInventory: vi.fn(),
   updateInventorySettings: vi.fn(),
   createInventoryItem: vi.fn(),

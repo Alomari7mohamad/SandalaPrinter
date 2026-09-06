@@ -175,6 +175,8 @@ export interface InventoryItemDto {
   catalogServiceId: string | null
   categoryId: string | null
   categoryName: string | null
+  rawMaterialCategoryId: string | null
+  rawMaterialCategoryName: string | null
   packageEnabled: boolean
   packageName: string | null
   unitsPerPackage: number | null
@@ -185,6 +187,8 @@ export interface InventoryItemDto {
   updatedAt: string
 }
 export interface InventorySupplierDto { id: string; name: string; companyName: string; whatsappPhone: string }
+export interface RawMaterialCategoryDto { id: string; nameAr: string; active: boolean; sortOrder: number }
+export interface RawMaterialCategoryInput { id?: string; nameAr: string }
 export interface MaterialRequirementDto { inventoryItemId: string; materialName: string; barcode: string | null; unit: string; currentQuantity: number; quantityPerUnit: number }
 export interface MaterialRequirementInput { inventoryItemId: string; quantityPerUnit: number }
 export interface InventoryAdjustmentInput {
@@ -194,8 +198,8 @@ export interface InventoryAdjustmentInput {
   quantityMode?: 'UNIT' | 'PACKAGE'
   notes: string | null
 }
-export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; supplierIds?: string[]; barcode?: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
-export interface InventoryItemInput { name: string; sku: string | null; barcode?: string | null; itemKind?: 'STOCK_ITEM' | 'RAW_MATERIAL'; unit: string; quantity: number; purchaseCost: number; supplierId?: string | null; supplierIds?: string[]; categoryId?: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
+export interface InventorySettingsInput { itemId: string; lowStockThreshold: number; purchaseCost: number; supplierId: string | null; supplierIds?: string[]; barcode?: string | null; rawMaterialCategoryId?: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
+export interface InventoryItemInput { name: string; sku: string | null; barcode?: string | null; itemKind?: 'STOCK_ITEM' | 'RAW_MATERIAL'; unit: string; quantity: number; purchaseCost: number; supplierId?: string | null; supplierIds?: string[]; categoryId?: string | null; rawMaterialCategoryId?: string | null; reorderPoint: number; minimumOrderQuantity: number; packageEnabled: boolean; packageName: string | null; unitsPerPackage: number | null; packagePrice: number | null; packageNotes: string | null; reorderPackageCount: number | null }
 
 export interface SupplierDto { id: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null; active: boolean; productCount: number }
 export interface SupplierInput { id?: string; name: string; companyName: string; whatsappPhone: string; productTypes: string | null }
@@ -297,6 +301,9 @@ export interface DesktopApi {
   }
   inventory: {
     list: () => Promise<InventoryItemDto[]>
+    listCategories: () => Promise<RawMaterialCategoryDto[]>
+    saveCategory: (input: RawMaterialCategoryInput) => Promise<RawMaterialCategoryDto>
+    deleteCategory: (id: string) => Promise<void>
     adjust: (input: InventoryAdjustmentInput) => Promise<InventoryItemDto>
     updateSettings: (input: InventorySettingsInput) => Promise<InventoryItemDto>
     createItem: (input: InventoryItemInput) => Promise<InventoryItemDto>

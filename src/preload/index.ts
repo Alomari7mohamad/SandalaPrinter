@@ -30,6 +30,9 @@ const api: DesktopApi = {
   },
   inventory: {
     list: () => ipcRenderer.invoke('inventory:list'),
+    listCategories: () => ipcRenderer.invoke('inventory:list-categories'),
+    saveCategory: (input) => ipcRenderer.invoke('inventory:save-category', input),
+    deleteCategory: (id) => ipcRenderer.invoke('inventory:delete-category', id),
     adjust: (input) => ipcRenderer.invoke('inventory:adjust', input),
     updateSettings: (input) => ipcRenderer.invoke('inventory:update-settings', input),
     createItem: (input) => ipcRenderer.invoke('inventory:create-item', input),

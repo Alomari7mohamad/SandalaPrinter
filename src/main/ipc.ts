@@ -3,7 +3,7 @@ import { getDashboardStats } from './database/dashboard.repository'
 import { getDatabasePath } from './database/client'
 import { catalogService } from './services/catalog.service'
 import type { PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../shared/contracts'
-import type { CreateOrderInput, InventoryAdjustmentInput, InventoryItemInput, InventorySettingsInput, MaterialRequirementInput, OrderListQuery, PurchaseRequestInput, ReportRangeInput, SupplierInput, WorkLogInput } from '../shared/contracts'
+import type { CreateOrderInput, InventoryAdjustmentInput, InventoryItemInput, InventorySettingsInput, MaterialRequirementInput, OrderListQuery, PurchaseRequestInput, RawMaterialCategoryInput, ReportRangeInput, SupplierInput, WorkLogInput } from '../shared/contracts'
 import type { PrintOrderOptions, UpdateSettingsDto } from '../shared/contracts'
 import { orderService } from './services/order.service'
 import { inventoryService } from './services/inventory.service'
@@ -35,6 +35,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('orders:get', (_event, id: string) => orderService.get(id))
   ipcMain.handle('orders:set-payment-status', (_event, id: string, paid: boolean) => orderService.setPaymentStatus(id, paid))
   ipcMain.handle('inventory:list', () => inventoryService.list())
+  ipcMain.handle('inventory:list-categories', () => inventoryService.listCategories())
+  ipcMain.handle('inventory:save-category', (_event, input:RawMaterialCategoryInput) => inventoryService.saveCategory(input))
+  ipcMain.handle('inventory:delete-category', (_event, id:string) => inventoryService.deleteCategory(id))
   ipcMain.handle('inventory:adjust', (_event, input: InventoryAdjustmentInput) => inventoryService.adjust(input))
   ipcMain.handle('inventory:update-settings', (_event, input: InventorySettingsInput) => inventoryService.updateSettings(input))
   ipcMain.handle('inventory:create-item', (_event, input: InventoryItemInput) => inventoryService.createItem(input))
@@ -109,6 +112,9 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('orders:get')
   ipcMain.removeHandler('orders:set-payment-status')
   ipcMain.removeHandler('inventory:list')
+  ipcMain.removeHandler('inventory:list-categories')
+  ipcMain.removeHandler('inventory:save-category')
+  ipcMain.removeHandler('inventory:delete-category')
   ipcMain.removeHandler('inventory:adjust')
   ipcMain.removeHandler('inventory:update-settings')
   ipcMain.removeHandler('inventory:create-item')
