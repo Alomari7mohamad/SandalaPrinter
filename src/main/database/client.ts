@@ -19,6 +19,7 @@ import inventoryCategoriesMigration from './migrations/0011_inventory_categories
 import ownerWorkLogsMigration from './migrations/0012_owner_work_logs.sql?raw'
 import rawMaterialRecipesMigration from './migrations/0013_raw_material_recipes.sql?raw'
 import rawMaterialCategoriesMigration from './migrations/0014_raw_material_categories.sql?raw'
+import typedCatalogMigration from './migrations/0015_typed_catalog.sql?raw'
 import { seedCorePricingData } from './seed'
 import { seedInventoryItems } from './inventory.seed'
 import { seedGhassanProducts } from './ghassan-products.seed'
@@ -85,36 +86,15 @@ export function initializeDatabase() {
     sqlite.transaction(() => sqlite?.exec(rawMaterialCategoriesMigration))()
   }
   seedCorePricingData(sqlite)
-  seedInventoryItems(sqlite)
-  seedGhassanProducts(sqlite)
-  seedPrintingInventory(sqlite)
-  recoverLegacyInventoryData(sqlite, join(app.getPath('appData'), 'oh-printer-manager', 'data', 'oh-printer-manager.db'), databasePath)
-  seedCatalogInventorySync(sqlite)
-  // المواد الأساسية المضمنة مع التطبيق تبدأ بالبادئة inv-، باستثناء بضائع غسان الجاهزة للبيع.
-  sqlite.prepare("UPDATE inventory_items SET item_kind='RAW_MATERIAL' WHERE id LIKE 'inv-%' AND id NOT LIKE 'inv-ghassan-product-%'").run()
-  // تُنشأ البيانات الافتراضية بعد الترحيلات في التثبيت الجديد، لذلك نضمن إسنادها
-  // إلى تصنيف مناسب هنا أيضاً. لا نغيّر أي تصنيف اختاره المستخدم مسبقاً.
-  sqlite.prepare(`
-    UPDATE inventory_items
-    SET raw_material_category_id = 'raw-category-paper'
-    WHERE active = 1
-      AND raw_material_category_id IS NULL
-      AND (
-        name LIKE '%ورق%'
-        OR name LIKE '%بروستول%'
-        OR name LIKE '%خرومو%'
-        OR name LIKE '%كرتون%'
-        OR name LIKE '%ملصقات%'
-        OR lower(name) LIKE '%ncr%'
-        OR name LIKE '%سبليميشن%'
-      )
-  `).run()
-  sqlite.prepare(`
-    UPDATE inventory_items
-    SET raw_material_category_id = 'raw-category-general'
-    WHERE active = 1
-      AND raw_material_category_id IS NULL
-  `).run()
+  if (schemaVersion < 16) {
+    seedInventoryItems(sqlite)
+    seedGhassanProducts(sqlite)
+    seedPrintingInventory(sqlite)
+    recoverLegacyInventoryData(sqlite, join(app.getPath('appData'), 'oh-printer-manager', 'data', 'oh-printer-manager.db'), databasePath)
+    seedCatalogInventorySync(sqlite)
+    const database = sqlite
+    database.transaction(() => database.exec(typedCatalogMigration))()
+  }
   return drizzle(sqlite, { schema })
 }
 

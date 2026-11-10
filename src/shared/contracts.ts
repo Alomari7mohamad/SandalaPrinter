@@ -27,8 +27,10 @@ export interface UpdateStatusDto {
   message: string
 }
 
-export interface ServiceCategoryDto { id: string; code: string; nameAr: string; active: boolean; sortOrder: number }
-export interface ServiceCategoryInput { id?: string; nameAr: string }
+export type CatalogItemType = 'SERVICE' | 'PRODUCT'
+
+export interface ServiceCategoryDto { id: string; code: string; nameAr: string; active: boolean; sortOrder: number; itemType: CatalogItemType }
+export interface ServiceCategoryInput { id?: string; nameAr: string; itemType?: CatalogItemType }
 
 export interface ServiceDto {
   id: string
@@ -42,7 +44,7 @@ export interface ServiceDto {
   colorMode: string | null
   coverage: string | null
   unit: string
-  itemType: 'SERVICE' | 'PRODUCT'
+  itemType: CatalogItemType
   supplierId: string | null
   supplierName: string | null
   reorderPoint: number
@@ -62,13 +64,13 @@ export interface ServiceInput {
   code: string
   nameAr: string
   nameHe: string | null
-  categoryId: string
+  categoryId: string | null
   paperType: string | null
   size: string | null
   colorMode: string | null
   coverage: string | null
   unit: string
-  itemType: 'SERVICE' | 'PRODUCT'
+  itemType: CatalogItemType
   supplierId: string | null
   reorderPoint: number
   minimumOrderQuantity: number
@@ -283,8 +285,6 @@ export interface DesktopApi {
     saveService: (input: ServiceInput) => Promise<ServiceDto>
     setServiceActive: (id: string, active: boolean) => Promise<void>
     deleteService: (id: string) => Promise<void>
-    listMaterialRequirements: (serviceId: string) => Promise<MaterialRequirementDto[]>
-    saveMaterialRequirements: (serviceId: string, requirements: MaterialRequirementInput[]) => Promise<MaterialRequirementDto[]>
   }
   pricing: {
     listRules: (serviceId: string) => Promise<PriceRule[]>
@@ -298,24 +298,6 @@ export interface DesktopApi {
     list: (query: OrderListQuery) => Promise<OrderSummaryDto[]>
     get: (id: string) => Promise<OrderDetailDto>
     setPaymentStatus: (id: string, paid: boolean) => Promise<OrderSummaryDto>
-  }
-  inventory: {
-    list: () => Promise<InventoryItemDto[]>
-    listCategories: () => Promise<RawMaterialCategoryDto[]>
-    saveCategory: (input: RawMaterialCategoryInput) => Promise<RawMaterialCategoryDto>
-    deleteCategory: (id: string) => Promise<void>
-    adjust: (input: InventoryAdjustmentInput) => Promise<InventoryItemDto>
-    updateSettings: (input: InventorySettingsInput) => Promise<InventoryItemDto>
-    createItem: (input: InventoryItemInput) => Promise<InventoryItemDto>
-    deleteItem: (id: string) => Promise<void>
-  }
-  shortages: {
-    listSuppliers: () => Promise<SupplierDto[]>
-    saveSupplier: (input: SupplierInput) => Promise<SupplierDto>
-    listRequests: () => Promise<PurchaseRequestDto[]>
-    saveRequest: (input: PurchaseRequestInput) => Promise<PurchaseRequestDto>
-    deleteRequest: (id: string) => Promise<void>
-    openWhatsApp: (supplierId: string, message: string) => Promise<void>
   }
   reports: {
     get: (range: ReportRangeInput) => Promise<BusinessReportDto>

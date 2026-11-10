@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { ServiceCategoryDto } from '../../../shared/contracts'
+import type { CatalogItemType, ServiceCategoryDto } from '../../../shared/contracts'
 import { getArabicError } from '../utils/errors'
 import { Modal } from './Modal'
 
 export function CategoryDialog({ category, onClose, onSaved }: { category?: ServiceCategoryDto; onClose: () => void; onSaved: (category: ServiceCategoryDto) => void }) {
   const [name, setName] = useState(category?.nameAr ?? '')
+  const [itemType, setItemType] = useState<CatalogItemType>(category?.itemType ?? 'SERVICE')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -15,7 +16,7 @@ export function CategoryDialog({ category, onClose, onSaved }: { category?: Serv
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setSaving(true); setError('')
     try {
-      const saved = await window.desktopApi.catalog.saveCategory({ id: category?.id, nameAr: name.trim() })
+      const saved = await window.desktopApi.catalog.saveCategory({ id: category?.id, nameAr: name.trim(), itemType })
       window.dispatchEvent(new Event('sandala:catalog-changed'))
       onSaved(saved)
     } catch (cause) { setError(getArabicError(cause, 'تعذر حفظ التصنيف.')) }
@@ -25,6 +26,13 @@ export function CategoryDialog({ category, onClose, onSaved }: { category?: Serv
     <form className="dialog-form one-column" onSubmit={submit}>
       {error && <div className="alert error">{error}</div>}
       <label htmlFor="category-name">اسم التصنيف<input ref={nameInputRef} id="category-name" name="categoryName" type="text" dir="rtl" autoComplete="off" required minLength={2} maxLength={100} value={name} onChange={(event) => setName(event.currentTarget.value)} placeholder="اكتب اسم التصنيف، مثال: طباعة لوحات" /></label>
+      <label>نوع التصنيف
+        <select value={itemType} onChange={(event) => setItemType(event.target.value as CatalogItemType)}>
+          <option value="SERVICE">خدمات</option>
+          <option value="PRODUCT">منتجات</option>
+        </select>
+      </label>
+      {category && category.itemType !== itemType && <p>ستنتقل العناصر التابعة لهذا التصنيف إلى الصفحة الموافقة للنوع الجديد.</p>}
       <div className="dialog-actions"><button type="button" className="secondary-button" onClick={onClose}>إلغاء</button><button className="primary-button" disabled={saving || name.trim().length < 2}>{saving ? 'جارٍ الحفظ...' : category ? 'حفظ التعديل' : 'إضافة التصنيف'}</button></div>
     </form>
   </Modal>

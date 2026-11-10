@@ -50,7 +50,7 @@ export function SettingsPage() {
     catch (cause) { setError(getArabicError(cause, 'تعذر بدء تثبيت التحديث.')) ; setBusy('') }
   }
   const clearSales = async () => {
-    const confirmed = window.confirm('سيتم حذف جميع الطلبات وبنود الطلب والمدفوعات وأرقام المبيعات والأرباح نهائيًا.\n\nلن يتم حذف التصنيفات أو الخدمات أو المنتجات أو الأسعار أو بيانات المخزون.\n\nهل تريد متابعة الحذف؟')
+    const confirmed = window.confirm('سيتم حذف جميع الطلبات وبنود الطلب والمدفوعات وأرقام المبيعات والأرباح نهائيًا.\n\nلن يتم حذف التصنيفات أو الخدمات أو المنتجات أو الأسعار.\n\nهل تريد متابعة الحذف؟')
     if (!confirmed) return
     setClearingSales(true); setError(''); setSalesClearMessage('')
     try {
@@ -84,7 +84,7 @@ export function SettingsPage() {
         {status?.state === 'downloaded' && <button className="primary-button install-update-button" disabled={Boolean(busy)} onClick={() => void install()}><RefreshCw size={17} /> إعادة التشغيل وتثبيت التحديث</button>}
       </section>
       <section className="panel update-help-card"><ShieldCheck size={22} /><div><b>تحديث آمن للبرنامج</b><p>يجب أن يحتوي مصدر التحديث على ملفات الإصدار التي ينشئها نظام بناء التطبيق. عند نشر إصدار أعلى سيظهر إشعار تلقائي، ثم يمكنك تنزيله وتثبيته من هذه الصفحة.</p></div></section>
-      <section className="panel sales-reset-card"><div><Trash2 size={23} /><div><b>حذف بيانات التجربة</b><p>يحذف الطلبات والمدفوعات وأرقام المبيعات والأرباح فقط. لا يحذف التصنيفات أو الخدمات أو المنتجات أو الأسعار أو المخزون.</p></div></div><button type="button" className="delete-sales-button" disabled={clearingSales} onClick={() => void clearSales()}>{clearingSales ? <LoaderCircle className="spin" size={18} /> : <Trash2 size={18} />}{clearingSales ? 'جارٍ الحذف...' : 'حذف بيانات المبيعات'}</button></section>
+      <section className="panel sales-reset-card"><div><Trash2 size={23} /><div><b>حذف بيانات التجربة</b><p>يحذف الطلبات والمدفوعات وأرقام المبيعات والأرباح فقط. لا يحذف التصنيفات أو الخدمات أو المنتجات أو الأسعار.</p></div></div><button type="button" className="delete-sales-button" disabled={clearingSales} onClick={() => void clearSales()}>{clearingSales ? <LoaderCircle className="spin" size={18} /> : <Trash2 size={18} />}{clearingSales ? 'جارٍ الحذف...' : 'حذف بيانات المبيعات'}</button></section>
     </div>}
   </div>
 }

@@ -6,6 +6,7 @@ const timestamps = {
 }
 
 export const serviceCategories = sqliteTable('service_categories', {
+  itemType: text('item_type', { enum: ['SERVICE', 'PRODUCT'] }).notNull().default('SERVICE'),
   id: text('id').primaryKey(),
   nameAr: text('name_ar').notNull(),
   code: text('code').notNull().unique(),

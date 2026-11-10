@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { BookOpenText, Boxes, CalendarClock, ChartNoAxesCombined, ClipboardList, House, PackageOpen, PanelRightClose, Plus, Settings, ShoppingBasket, Tags, UserRound } from 'lucide-react'
+import { BookOpenText, CalendarClock, ChartNoAxesCombined, ClipboardList, House, Layers3, Printer, PackageOpen, PanelRightClose, Plus, Settings, Tags, UserRound } from 'lucide-react'
 import sandalaLogo from '../assets/sandala-logo.png'
 import sandalaIcon from '../assets/sandala-icon.png'
 
 const sections = [
   { label: 'العمل اليومي', items: [['/', 'الرئيسية', House], ['/orders', 'الطلبات', ClipboardList]] },
-  { label: 'المنتجات والتشغيل', items: [['/services', 'صفحة العمل', PackageOpen], ['/pricing', 'الأسعار', Tags], ['/book-printing', 'طباعة الكتب', BookOpenText], ['/inventory', 'المخزون', Boxes], ['/shortages', 'النواقص والطلبيات', ShoppingBasket]] },
+  { label: 'دليل المطبعة', items: [['/categories', 'التصنيفات', Layers3], ['/products', 'المنتجات', PackageOpen], ['/services', 'الخدمات', Printer], ['/pricing', 'الأسعار', Tags], ['/book-printing', 'طباعة الكتب', BookOpenText]] },
   { label: 'التحليل والنظام', items: [['/profits', 'الأرباح', ChartNoAxesCombined], ['/work-log', 'سجل الدوام', CalendarClock], ['/settings', 'الإعدادات', Settings]] },
 ] as const
 

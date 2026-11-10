@@ -12,8 +12,6 @@ const api: DesktopApi = {
     saveService: (input) => ipcRenderer.invoke('catalog:save-service', input),
     setServiceActive: (id, active) => ipcRenderer.invoke('catalog:set-service-active', id, active),
     deleteService: (id) => ipcRenderer.invoke('catalog:delete-service', id),
-    listMaterialRequirements: (serviceId) => ipcRenderer.invoke('catalog:list-material-requirements', serviceId),
-    saveMaterialRequirements: (serviceId, input) => ipcRenderer.invoke('catalog:save-material-requirements', serviceId, input)
   },
   pricing: {
     listRules: (serviceId) => ipcRenderer.invoke('pricing:list-rules', serviceId),
@@ -27,24 +25,6 @@ const api: DesktopApi = {
     list: (query) => ipcRenderer.invoke('orders:list', query),
     get: (id) => ipcRenderer.invoke('orders:get', id),
     setPaymentStatus: (id, paid) => ipcRenderer.invoke('orders:set-payment-status', id, paid)
-  },
-  inventory: {
-    list: () => ipcRenderer.invoke('inventory:list'),
-    listCategories: () => ipcRenderer.invoke('inventory:list-categories'),
-    saveCategory: (input) => ipcRenderer.invoke('inventory:save-category', input),
-    deleteCategory: (id) => ipcRenderer.invoke('inventory:delete-category', id),
-    adjust: (input) => ipcRenderer.invoke('inventory:adjust', input),
-    updateSettings: (input) => ipcRenderer.invoke('inventory:update-settings', input),
-    createItem: (input) => ipcRenderer.invoke('inventory:create-item', input),
-    deleteItem: (id) => ipcRenderer.invoke('inventory:delete-item', id)
-  },
-  shortages: {
-    listSuppliers: () => ipcRenderer.invoke('shortages:list-suppliers'),
-    saveSupplier: (input) => ipcRenderer.invoke('shortages:save-supplier', input),
-    listRequests: () => ipcRenderer.invoke('shortages:list-requests'),
-    saveRequest: (input) => ipcRenderer.invoke('shortages:save-request', input),
-    deleteRequest: (id) => ipcRenderer.invoke('shortages:delete-request', id),
-    openWhatsApp: (supplierId, message) => ipcRenderer.invoke('shortages:open-whatsapp', supplierId, message)
   },
   reports: {
     get: (range) => ipcRenderer.invoke('reports:get', range)

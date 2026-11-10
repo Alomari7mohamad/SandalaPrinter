@@ -1,24 +1,29 @@
 import { randomUUID } from 'node:crypto'
 import type { PriceRule } from '../../shared/pricing/pricing-types'
-import type { MaterialRequirementDto, MaterialRequirementInput, PricingRuleInput, ServiceCategoryDto, ServiceDto, ServiceInput } from '../../shared/contracts'
+import type { MaterialRequirementDto, MaterialRequirementInput, PricingRuleInput, ServiceCategoryDto, ServiceCategoryInput, ServiceDto, ServiceInput } from '../../shared/contracts'
 import { getSqlite } from './client'
 
-interface CategoryRow { id: string; code: string; nameAr: string; active: number; sortOrder: number }
+interface CategoryRow extends Omit<ServiceCategoryDto, 'active'> { active: number }
 interface ServiceRow extends Omit<ServiceDto, 'active'> { active: number }
 interface RuleRow extends Omit<PriceRule, 'active'> { active: number }
 
 export function listCategories(): ServiceCategoryDto[] {
-  const rows = getSqlite().prepare(`SELECT id, code, name_ar nameAr, active, sort_order sortOrder FROM service_categories WHERE active = 1 ORDER BY sort_order, name_ar`).all() as CategoryRow[]
+  const rows = getSqlite().prepare(`SELECT id, code, name_ar nameAr, active, sort_order sortOrder, item_type itemType FROM service_categories WHERE active = 1 ORDER BY sort_order, name_ar`).all() as CategoryRow[]
   return rows.map((row) => ({ ...row, active: Boolean(row.active) }))
 }
 
-export function saveCategory(input: { id?: string; nameAr: string }): ServiceCategoryDto {
+export function saveCategory(input: ServiceCategoryInput): ServiceCategoryDto {
   const database = getSqlite()
-  const duplicate = database.prepare('SELECT id, active FROM service_categories WHERE lower(name_ar) = lower(?) AND id <> COALESCE(?, \'\')').get(input.nameAr, input.id ?? null) as { id: string; active: number } | undefined
+  const currentType = input.id ? database.prepare('SELECT item_type FROM service_categories WHERE id=? AND active=1').pluck().get(input.id) as ServiceCategoryDto['itemType'] | undefined : undefined
+  const itemType = input.itemType ?? currentType ?? 'SERVICE'
+  const duplicate = database.prepare('SELECT id, active FROM service_categories WHERE lower(name_ar) = lower(?) AND item_type = ? AND id <> COALESCE(?, \'\')').get(input.nameAr, itemType, input.id ?? null) as { id: string; active: number } | undefined
   if (duplicate?.active) throw new Error('يوجد تصنيف بهذا الاسم بالفعل.')
   if (input.id) {
-    const result = database.prepare('UPDATE service_categories SET name_ar=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1').run(input.nameAr, input.id)
-    if (result.changes === 0) throw new Error('التصنيف المطلوب غير موجود.')
+    database.transaction(() => {
+      const result = database.prepare('UPDATE service_categories SET name_ar=?, item_type=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1').run(input.nameAr, itemType, input.id)
+      if (result.changes === 0) throw new Error('التصنيف المطلوب غير موجود.')
+      database.prepare('UPDATE services SET item_type=? WHERE category_id=? AND item_type<>?').run(itemType, input.id, itemType)
+    })()
     const saved = listCategories().find((category) => category.id === input.id)
     if (!saved) throw new Error('تعذر قراءة التصنيف بعد حفظه.')
     return saved
@@ -32,8 +37,8 @@ export function saveCategory(input: { id?: string; nameAr: string }): ServiceCat
   const id = randomUUID()
   const code = `CUSTOM_${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`
   const sortOrder = Number(database.prepare('SELECT COALESCE(MAX(sort_order), 0) + 10 FROM service_categories').pluck().get())
-  database.prepare('INSERT INTO service_categories (id, name_ar, code, active, sort_order) VALUES (?, ?, ?, 1, ?)').run(id, input.nameAr, code, sortOrder)
-  return { id, nameAr: input.nameAr, code, active: true, sortOrder }
+  database.prepare('INSERT INTO service_categories (id, name_ar, code, active, sort_order, item_type) VALUES (?, ?, ?, 1, ?, ?)').run(id, input.nameAr, code, sortOrder, itemType)
+  return { id, nameAr: input.nameAr, code, active: true, sortOrder, itemType }
 }
 
 export function deleteCategory(id: string): void {
@@ -50,7 +55,7 @@ export function listServices(): ServiceDto[] {
   const rows = getSqlite().prepare(`
     SELECT s.id, s.code, s.name_ar nameAr, s.name_he nameHe, s.category_id categoryId, COALESCE(c.name_ar, 'بدون تصنيف') categoryName,
       s.material_type paperType, s.size, s.color_mode colorMode, s.coverage, s.unit,
-      'SERVICE' itemType, NULL supplierId, NULL supplierName,
+      s.item_type itemType, NULL supplierId, NULL supplierName,
       s.reorder_point reorderPoint, s.minimum_order_quantity minimumOrderQuantity, s.cost_type costType,
       s.unit_cost unitCost, s.cost_batch_size costBatchSize, s.active, s.notes,
       COUNT(pr.id) pricingRulesCount, s.created_at createdAt, s.updated_at updatedAt
@@ -70,12 +75,18 @@ export function saveService(input: ServiceInput): ServiceDto {
   const database = getSqlite()
   const id = input.id ?? randomUUID()
   database.transaction(() => {
+    if (input.categoryId !== null) {
+      const categoryType = database.prepare('SELECT item_type FROM service_categories WHERE id=? AND active=1').pluck().get(input.categoryId)
+      if (categoryType !== input.itemType) throw new Error('اختر تصنيفًا مطابقًا لنوع العنصر.')
+    } else if (!input.id || !database.prepare('SELECT 1 FROM services WHERE id=? AND category_id IS NULL AND item_type=?').get(input.id, input.itemType)) {
+      throw new Error('اختر تصنيفًا للعنصر.')
+    }
     if (input.id) {
-      database.prepare(`UPDATE services SET code=?, name_ar=?, name_he=?, category_id=?, material_type=?, size=?, color_mode=?, coverage=?, unit=?, item_type='SERVICE', supplier_id=NULL, reorder_point=?, minimum_order_quantity=?, cost_type=?, unit_cost=?, cost_batch_size=?, active=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-        .run(input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes, id)
+      database.prepare(`UPDATE services SET code=?, name_ar=?, name_he=?, category_id=?, material_type=?, size=?, color_mode=?, coverage=?, unit=?, item_type=?, supplier_id=NULL, reorder_point=?, minimum_order_quantity=?, cost_type=?, unit_cost=?, cost_batch_size=?, active=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .run(input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.itemType, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes, id)
     } else {
-      database.prepare(`INSERT INTO services (id, code, name_ar, name_he, category_id, material_type, size, color_mode, coverage, unit, item_type, supplier_id, reorder_point, minimum_order_quantity, cost_type, unit_cost, cost_batch_size, cost_calculation, sale_calculation, active, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'SERVICE', NULL, ?, ?, ?, ?, ?, 'COST_STRATEGY', 'PRICING_RULE', ?, ?)`)
-        .run(id, input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes)
+      database.prepare(`INSERT INTO services (id, code, name_ar, name_he, category_id, material_type, size, color_mode, coverage, unit, item_type, supplier_id, reorder_point, minimum_order_quantity, cost_type, unit_cost, cost_batch_size, cost_calculation, sale_calculation, active, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 'COST_STRATEGY', 'PRICING_RULE', ?, ?)`)
+        .run(id, input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.itemType, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes)
     }
   })()
   const saved = getService(id)

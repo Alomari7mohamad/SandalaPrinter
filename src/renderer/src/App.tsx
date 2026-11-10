@@ -3,13 +3,12 @@ import { useEffect, useLayoutEffect } from 'react'
 import { AppLayout } from './components/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { NewOrderPage } from './pages/NewOrderPage'
+import { CategoriesPage } from './pages/CategoriesPage'
 import { ServicesPage } from './pages/ServicesPage'
 import { PricingPage } from './pages/PricingPage'
 import { OrdersPage } from './pages/OrdersPage'
-import { InventoryPage } from './pages/InventoryPage'
 import { ProfitsPage } from './pages/ProfitsPage'
 import { SettingsPage } from './pages/SettingsPage'
-import { ShortagesPage } from './pages/ShortagesPage'
 import { BookPrintingPage } from './pages/BookPrintingPage'
 import { WorkLogPage } from './pages/WorkLogPage'
 
@@ -39,10 +38,12 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="new-order" element={<NewOrderPage />} />
         <Route path="orders" element={<OrdersPage />} />
-        <Route path="services" element={<ServicesPage />} />
+        <Route path="services" element={<ServicesPage key="services" itemType="SERVICE" />} />
+        <Route path="categories" element={<CategoriesPage />} />
+        <Route path="products" element={<ServicesPage key="products" itemType="PRODUCT" />} />
         <Route path="pricing" element={<PricingPage />} />
-        <Route path="inventory" element={<InventoryPage />} />
-        <Route path="shortages" element={<ShortagesPage />} />
+
+
         <Route path="book-printing" element={<BookPrintingPage />} />
         <Route path="profits" element={<ProfitsPage />} />
         <Route path="work-log" element={<WorkLogPage />} />

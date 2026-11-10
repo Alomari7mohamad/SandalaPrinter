@@ -13,23 +13,62 @@ import catalogInventoryProductsMigration from './migrations/0009_catalog_invento
 import inventoryPackagesMigration from './migrations/0010_inventory_packages.sql?raw'
 import inventoryCategoriesMigration from './migrations/0011_inventory_categories.sql?raw'
 
+import typedCatalogMigration from './migrations/0015_typed_catalog.sql?raw'
+
 const databaseState = vi.hoisted(() => ({ current: undefined as unknown as Database.Database }))
 vi.mock('./client', () => ({ getSqlite: () => databaseState.current }))
 
 import { deleteCategory, listServices, saveCategory, saveService } from './catalog.repository'
 
-function createDatabase(): Database.Database {
+function createDatabase(upgrade = true): Database.Database {
   const database = new Database(':memory:')
   database.pragma('foreign_keys=ON')
   for (const migration of [initialMigration, phaseTwoMigration, sandalaBrandMigration, orderDeliveryDetailsMigration,
     orderPaidAtMigration, orderBusinessLogoMigration, bilingualServiceNamesMigration, unitCostOnlyMigration,
     suppliersShortagesMigration, catalogInventoryProductsMigration, inventoryPackagesMigration, inventoryCategoriesMigration]) database.exec(migration)
+  if (upgrade) database.exec(typedCatalogMigration)
   return database
 }
 
 describe('إدارة التصنيفات', () => {
   beforeEach(() => { databaseState.current = createDatabase() })
   afterEach(() => databaseState.current.close())
+
+  it('يفصل التصنيف المختلط مع بقاء معرّفات العناصر والأسعار والطلبات السابقة', () => {
+    const db = createDatabase(false)
+    try {
+      db.exec(`
+        INSERT INTO service_categories (id, code, name_ar) VALUES ('mixed', 'MIXED', 'براويز');
+        INSERT INTO services (id, category_id, code, name_ar, unit, unit_cost) VALUES
+          ('print-frames', 'mixed', 'PRINT_FRAMES', 'طباعة برواز', 'قطعة', 3),
+          ('product-frame', 'mixed', 'FRAME', 'برواز', 'قطعة', 5);
+        INSERT INTO pricing_rules (id, service_id, type, sale_unit_price)
+          VALUES ('frame-price', 'product-frame', 'UNIT_PRICE', 10);
+        INSERT INTO orders (id, order_number, ordered_at) VALUES ('previous-order', 'ORD-PREVIOUS', CURRENT_TIMESTAMP);
+        INSERT INTO order_items (id, order_id, service_id, service_code_snapshot, service_name_snapshot, category_snapshot, unit_snapshot, quantity, unit_cost_snapshot, total_cost, total_sale_price, profit, profit_margin)
+          VALUES ('previous-item', 'previous-order', 'product-frame', 'FRAME', 'برواز', 'براويز', 'قطعة', 1, 5, 5, 10, 5, 50);
+      `)
+      db.transaction(() => db.exec(typedCatalogMigration))()
+      expect(db.prepare("SELECT id, item_type FROM service_categories WHERE name_ar='براويز' ORDER BY item_type").all())
+        .toEqual([{ id: 'typed-products:mixed', item_type: 'PRODUCT' }, { id: 'mixed', item_type: 'SERVICE' }])
+      expect(db.prepare("SELECT category_id, unit_cost FROM services WHERE id='product-frame'").get())
+        .toEqual({ category_id: 'typed-products:mixed', unit_cost: 5 })
+      expect(db.prepare("SELECT service_id, sale_unit_price FROM pricing_rules WHERE id='frame-price'").get())
+        .toEqual({ service_id: 'product-frame', sale_unit_price: 10 })
+      expect(db.prepare("SELECT service_id, category_snapshot, total_sale_price FROM order_items WHERE id='previous-item'").get())
+        .toEqual({ service_id: 'product-frame', category_snapshot: 'براويز', total_sale_price: 10 })
+      expect(db.pragma('foreign_key_check')).toEqual([])
+    } finally {
+      db.close()
+    }
+  })
+
+  it('يغيّر نوع التصنيف وعناصره مع بقاء ارتباطها بالتصنيف', () => {
+    const category = saveCategory({ nameAr: 'تجريبي', itemType: 'PRODUCT' })
+    databaseState.current.prepare("INSERT INTO services (id, category_id, code, name_ar, unit, item_type) VALUES ('typed-item', ?, 'TYPED_ITEM', 'عنصر', 'قطعة', 'PRODUCT')").run(category.id)
+    saveCategory({ id: category.id, nameAr: category.nameAr, itemType: 'SERVICE' })
+    expect(listServices().find((item) => item.id === 'typed-item')).toMatchObject({ itemType: 'SERVICE', categoryId: category.id })
+  })
 
   it('يعدّل الاسم فيظهر مباشرة مع الخدمات التابعة له', () => {
     const category = saveCategory({ nameAr: 'تصنيف تجريبي' })

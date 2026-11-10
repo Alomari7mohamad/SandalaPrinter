@@ -4,7 +4,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const hasFunction = (value: Record<string, unknown>, key: string): boolean => typeof value[key] === 'function'
 
 export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
-  if (!isRecord(value) || !isRecord(value.app) || !isRecord(value.dashboard) || !isRecord(value.catalog) || !isRecord(value.pricing) || !isRecord(value.orders) || !isRecord(value.inventory) || !isRecord(value.shortages) || !isRecord(value.reports) || !isRecord(value.workLogs) || !isRecord(value.printing) || !isRecord(value.maintenance) || !isRecord(value.updates)) return false
+  if (!isRecord(value) || !isRecord(value.app) || !isRecord(value.dashboard) || !isRecord(value.catalog) || !isRecord(value.pricing) || !isRecord(value.orders) || !isRecord(value.reports) || !isRecord(value.workLogs) || !isRecord(value.printing) || !isRecord(value.maintenance) || !isRecord(value.updates)) return false
   return hasFunction(value.app, 'getInfo') &&
     hasFunction(value.dashboard, 'getStats') &&
     hasFunction(value.catalog, 'listCategories') &&
@@ -14,8 +14,6 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.catalog, 'saveService') &&
     hasFunction(value.catalog, 'setServiceActive') &&
     hasFunction(value.catalog, 'deleteService') &&
-    hasFunction(value.catalog, 'listMaterialRequirements') &&
-    hasFunction(value.catalog, 'saveMaterialRequirements') &&
     hasFunction(value.pricing, 'listRules') &&
     hasFunction(value.pricing, 'saveRule') &&
     hasFunction(value.pricing, 'setRuleActive') &&
@@ -25,20 +23,6 @@ export function isDesktopApiAvailable(value: unknown): value is DesktopApi {
     hasFunction(value.orders, 'list') &&
     hasFunction(value.orders, 'get') &&
     hasFunction(value.orders, 'setPaymentStatus') &&
-    hasFunction(value.inventory, 'list') &&
-    hasFunction(value.inventory, 'listCategories') &&
-    hasFunction(value.inventory, 'saveCategory') &&
-    hasFunction(value.inventory, 'deleteCategory') &&
-    hasFunction(value.inventory, 'adjust') &&
-    hasFunction(value.inventory, 'updateSettings') &&
-    hasFunction(value.inventory, 'createItem') &&
-    hasFunction(value.inventory, 'deleteItem') &&
-    hasFunction(value.shortages, 'listSuppliers') &&
-    hasFunction(value.shortages, 'saveSupplier') &&
-    hasFunction(value.shortages, 'listRequests') &&
-    hasFunction(value.shortages, 'saveRequest') &&
-    hasFunction(value.shortages, 'deleteRequest') &&
-    hasFunction(value.shortages, 'openWhatsApp') &&
     hasFunction(value.reports, 'get') &&
     hasFunction(value.workLogs, 'save') &&
     hasFunction(value.workLogs, 'getReport') &&

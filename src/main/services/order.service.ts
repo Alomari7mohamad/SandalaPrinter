@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import type { CreateOrderInput, CreateOrderResult } from '../../shared/contracts'
 import type { OrderListQuery } from '../../shared/contracts'
-import { calculateInventoryConsumption } from '../../shared/inventory/inventory-consumption'
 import { calculateDraftTotals } from '../../shared/orders/order-draft'
 import { calculatePrice } from '../../shared/pricing/pricing-engine'
 import * as catalogRepository from '../database/catalog.repository'
@@ -109,29 +108,6 @@ export const orderService = {
         insertItem.run(item.id, id, item.service.id, item.service.code, item.service.nameAr, item.service.nameHe, item.service.categoryName, item.service.paperType, item.service.size, item.service.colorMode, item.service.unit, item.quantity, effectiveUnitCost, item.cost, item.pricingRuleId, item.pricingRuleSnapshot, item.unitSalePrice, item.salePrice, item.profit, item.profitMargin)
       }
 
-      const consumptionByInventoryItem = new Map<string, Decimal>()
-      const addConsumption=(inventoryItemId:string,quantity:number)=>consumptionByInventoryItem.set(inventoryItemId,(consumptionByInventoryItem.get(inventoryItemId) ?? new Decimal(0)).plus(quantity))
-      for (const item of preparedItems) {
-        const recipe=database.prepare('SELECT inventory_item_id inventoryItemId, quantity_per_unit quantityPerUnit FROM service_material_requirements WHERE service_id=?').all(item.service.id) as Array<{inventoryItemId:string;quantityPerUnit:number}>
-        if(recipe.length>0) {
-          for(const material of recipe) addConsumption(material.inventoryItemId,new Decimal(material.quantityPerUnit).times(item.quantity).toNumber())
-          continue
-        }
-        const legacy=calculateInventoryConsumption([{serviceId:item.service.id,categoryId:item.service.categoryId,size:item.service.size,colorMode:item.service.colorMode,coverage:item.service.coverage,quantity:item.quantity}])
-        if(legacy.length>0) { for(const material of legacy) addConsumption(material.inventoryItemId,material.quantity); continue }
-        const linked=database.prepare('SELECT id FROM inventory_items WHERE catalog_service_id=? AND active=1').get(item.service.id) as {id:string}|undefined
-        if(linked) addConsumption(linked.id,item.quantity)
-      }
-      const consumeInventory = database.prepare(`UPDATE inventory_items SET quantity = quantity - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND active = 1`)
-      const recordConsumption = database.prepare(`
-        INSERT INTO inventory_transactions (id, inventory_item_id, type, quantity, reference_type, reference_id, notes, occurred_at)
-        VALUES (?, ?, 'OUT', ?, 'ORDER', ?, 'استهلاك تلقائي عند تأكيد الطلب', ?)
-      `)
-      for (const [inventoryItemId, quantityDecimal] of consumptionByInventoryItem) {
-        const quantity=quantityDecimal.toDecimalPlaces(6).toNumber()
-        const result = consumeInventory.run(quantity, inventoryItemId)
-        if (result.changes > 0) recordConsumption.run(randomUUID(), inventoryItemId, quantity, id, now)
-      }
     })()
 
     return { id, orderNumber, customerName, total: totals.total, totalCost: totals.totalCost, profit: totals.profit, profitMargin: totals.profitMargin, itemsCount: preparedItems.length }
