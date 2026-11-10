@@ -18,7 +18,7 @@ import typedCatalogMigration from './migrations/0015_typed_catalog.sql?raw'
 const databaseState = vi.hoisted(() => ({ current: undefined as unknown as Database.Database }))
 vi.mock('./client', () => ({ getSqlite: () => databaseState.current }))
 
-import { deleteCategory, listServices, saveCategory, saveService } from './catalog.repository'
+import { deleteCategory, deleteService, listServices, saveCategory, saveService } from './catalog.repository'
 
 function createDatabase(upgrade = true): Database.Database {
   const database = new Database(':memory:')
@@ -33,6 +33,22 @@ function createDatabase(upgrade = true): Database.Database {
 describe('إدارة التصنيفات', () => {
   beforeEach(() => { databaseState.current = createDatabase() })
   afterEach(() => databaseState.current.close())
+
+  it.each(['PRODUCT', 'SERVICE'] as const)('يحذف %s من الكتالوج مع إبقاء تفاصيل الطلب السابق', (itemType) => {
+    const db = databaseState.current
+    db.prepare("INSERT INTO services (id, code, name_ar, unit, item_type) VALUES ('deleted-item', 'DELETED', 'عنصر تجريبي', 'قطعة', ?)").run(itemType)
+    db.exec(`
+      INSERT INTO orders (id, order_number, ordered_at) VALUES ('kept-order', 'ORD-KEPT', CURRENT_TIMESTAMP);
+      INSERT INTO order_items (id, order_id, service_id, service_code_snapshot, service_name_snapshot, unit_snapshot, quantity, unit_cost_snapshot, total_cost, total_sale_price, profit, profit_margin)
+        VALUES ('kept-line', 'kept-order', 'deleted-item', 'DELETED', 'عنصر تجريبي', 'قطعة', 1, 5, 5, 10, 5, 50);
+    `)
+
+    deleteService('deleted-item')
+
+    expect(listServices().some((item) => item.id === 'deleted-item')).toBe(false)
+    expect(db.prepare("SELECT service_id, service_name_snapshot, total_sale_price FROM order_items WHERE id='kept-line'").get())
+      .toEqual({ service_id: null, service_name_snapshot: 'عنصر تجريبي', total_sale_price: 10 })
+  })
 
   it('يفصل التصنيف المختلط مع بقاء معرّفات العناصر والأسعار والطلبات السابقة', () => {
     const db = createDatabase(false)
