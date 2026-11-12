@@ -594,3 +594,33 @@ select option { color: #18394a; background: #fff; font-weight: 650; }
 .category-list-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 13px;border:1px solid #d7e3ec;border-radius:10px;background:#f8fbfd;color:#29465b;font-weight:800;white-space:nowrap;cursor:pointer}.category-list-toggle:hover,.category-list-toggle[aria-expanded=true]{border-color:#7fafe8;background:#edf6ff;color:#1765bd}
 .material-recipe-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.material-recipe-picker select{width:100%;min-width:0}
 @media(max-width:760px){.material-recipe-heading{align-items:stretch;flex-direction:column}.material-recipe-heading select{min-width:0;width:100%}.recipe-row{grid-template-columns:1fr}.supplier-picker{grid-template-columns:1fr}}
+
+
+/* Catalog workflow: five readable RTL steps with a compact quantity field. */
+.catalog-items-page .filters-bar { grid-template-columns:minmax(180px,1.25fr) minmax(140px,1fr) minmax(130px,1fr) 115px; }
+.new-order-page .service-hierarchy-grid {
+  grid-template-columns:repeat(6,minmax(0,1fr));
+}
+.new-order-page .service-hierarchy-grid label:nth-child(1) { grid-column:span 1; }
+.new-order-page .service-hierarchy-grid label:nth-child(2) { grid-column:span 3; }
+.new-order-page .service-hierarchy-grid label:nth-child(3) { grid-column:span 2; }
+.new-order-page .service-hierarchy-grid label:nth-child(4) { grid-column:span 4; }
+.new-order-page .service-hierarchy-grid label:nth-child(5) { grid-column:span 2; }
+.catalog-type-tabs { display:flex; gap:6px; padding:12px; border-bottom:1px solid #dbe5ed; }
+.catalog-type-tabs button { padding:12px 20px; border-radius:10px; background:#f2f7fa; color:#29465b; font-weight:800; cursor:pointer; border:1px solid transparent; }
+.catalog-type-tabs button.active { color:#1765bd; background:#edf6ff; border-color:#7fafe8; }
+.catalog-type-tabs button:focus-visible { outline:3px solid #7fafe8; outline-offset:2px; }
+.category-tree-table { width:100%; table-layout:fixed; }
+.category-tree-table td { overflow-wrap:anywhere; }
+.category-tree-table .category-root { background:#f2f7fa; }
+.category-tree-table .category-child td:first-child { padding-inline-start:32px; }
+.category-tree-table th:last-child { width:215px; }
+.product-price-pair { display:grid; gap:5px; }
+.product-price-pair small { color:#526373; }
+.product-price-pair b { color:#1765bd; }
+.product-price-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:20px; }
+.product-price-summary div { display:grid; gap:8px; }
+.product-price-summary b { font-size:22px; color:#18394a; }
+.product-effective-price { display:flex; justify-content:space-between; padding:16px; border:1px solid #7fafe8; border-radius:10px; background:#edf6ff; }
+@media(max-width:1180px) { .new-order-page .service-hierarchy-grid,.catalog-items-page .filters-bar { grid-template-columns:repeat(2,minmax(0,1fr)); } .new-order-page .service-hierarchy-grid label:nth-child(n) { grid-column:span 1; } .new-order-page .service-hierarchy-grid label:nth-child(4) { grid-column:1 / -1; } }
+@media(max-width:760px) { .new-order-page .service-hierarchy-grid,.product-price-summary,.catalog-items-page .filters-bar { grid-template-columns:1fr; } .new-order-page .service-hierarchy-grid label:nth-child(n) { grid-column:1; } .category-tree-table th:last-child { width:160px; } .category-tree-table .page-header-actions { flex-wrap:wrap; } }

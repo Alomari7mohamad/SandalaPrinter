@@ -14,6 +14,7 @@ import inventoryPackagesMigration from './migrations/0010_inventory_packages.sql
 import inventoryCategoriesMigration from './migrations/0011_inventory_categories.sql?raw'
 
 import typedCatalogMigration from './migrations/0015_typed_catalog.sql?raw'
+import hierarchyMigration from './migrations/0016_catalog_hierarchy.sql?raw'
 
 const databaseState = vi.hoisted(() => ({ current: undefined as unknown as Database.Database }))
 vi.mock('./client', () => ({ getSqlite: () => databaseState.current }))
@@ -26,13 +27,37 @@ function createDatabase(upgrade = true): Database.Database {
   for (const migration of [initialMigration, phaseTwoMigration, sandalaBrandMigration, orderDeliveryDetailsMigration,
     orderPaidAtMigration, orderBusinessLogoMigration, bilingualServiceNamesMigration, unitCostOnlyMigration,
     suppliersShortagesMigration, catalogInventoryProductsMigration, inventoryPackagesMigration, inventoryCategoriesMigration]) database.exec(migration)
-  if (upgrade) database.exec(typedCatalogMigration)
+  if (upgrade) {
+    database.exec(typedCatalogMigration)
+    database.exec(hierarchyMigration)
+  }
   return database
 }
 
 describe('إدارة التصنيفات', () => {
   beforeEach(() => { databaseState.current = createDatabase() })
   afterEach(() => databaseState.current.close())
+
+  it('يدعم فئات رئيسية وثانوية من النوع نفسه ويرفض الخلط أو العمق الزائد', () => {
+    const root = saveCategory({ nameAr: 'منتجات', itemType: 'PRODUCT' })
+    const child = saveCategory({ nameAr: 'براويز', itemType: 'PRODUCT', parentId: root.id })
+    expect(child.parentId).toBe(root.id)
+    expect(() => saveCategory({ nameAr: 'طباعة', itemType: 'SERVICE', parentId: root.id })).toThrow()
+    expect(() => saveCategory({ nameAr: 'مستوى ثالث', itemType: 'PRODUCT', parentId: child.id })).toThrow()
+    expect(() => saveCategory({ id: root.id, nameAr: root.nameAr, itemType: 'PRODUCT', parentId: child.id })).toThrow()
+    deleteCategory(root.id)
+    expect(databaseState.current.prepare('SELECT parent_id FROM service_categories WHERE id=?').pluck().get(child.id)).toBeNull()
+  })
+
+  it('يحفظ سعري المنتج ويقبل إلغاء العرض مع الحفاظ على التكلفة', () => {
+    const root = saveCategory({ nameAr: 'هدايا', itemType: 'PRODUCT' })
+    const input = { code:'GIFT_PRICE',nameAr:'هدية',nameHe:null,categoryId:root.id,paperType:null,size:null,colorMode:null,coverage:null,unit:'قطعة',itemType:'PRODUCT' as const,supplierId:null,reorderPoint:1,minimumOrderQuantity:1,costType:'PER_UNIT' as const,unitCost:10,costBatchSize:null,active:true,notes:null,regularSalePrice:45,offerSalePrice:35 }
+    const saved = saveService(input)
+    expect(saved).toMatchObject({regularSalePrice:45,offerSalePrice:35,unitCost:10})
+    expect(saveService({...input,id:saved.id,offerSalePrice:null})).toMatchObject({regularSalePrice:45,offerSalePrice:null})
+    expect(() => saveService({...input,id:saved.id,regularSalePrice:null,offerSalePrice:20})).toThrow()
+    expect(listServices().find((item) => item.id === saved.id)).toMatchObject({regularSalePrice:45,offerSalePrice:null})
+  })
 
   it.each(['PRODUCT', 'SERVICE'] as const)('يحذف %s من الكتالوج مع إبقاء تفاصيل الطلب السابق', (itemType) => {
     const db = databaseState.current

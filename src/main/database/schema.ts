@@ -6,6 +6,7 @@ const timestamps = {
 }
 
 export const serviceCategories = sqliteTable('service_categories', {
+  parentId: text('parent_id'),
   itemType: text('item_type', { enum: ['SERVICE', 'PRODUCT'] }).notNull().default('SERVICE'),
   id: text('id').primaryKey(),
   nameAr: text('name_ar').notNull(),
@@ -31,6 +32,8 @@ export const services = sqliteTable('services', {
   reorderPoint: real('reorder_point').notNull().default(1),
   minimumOrderQuantity: real('minimum_order_quantity').notNull().default(1),
   costType: text('cost_type').notNull().default('PER_UNIT'),
+  regularSalePrice: real('regular_sale_price'),
+  offerSalePrice: real('offer_sale_price'),
   unitCost: real('unit_cost'),
   costBatchSize: real('cost_batch_size'),
   costCalculation: text('cost_calculation').notNull().default('UNIT_COST'),

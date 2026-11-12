@@ -8,37 +8,34 @@ interface ServiceRow extends Omit<ServiceDto, 'active'> { active: number }
 interface RuleRow extends Omit<PriceRule, 'active'> { active: number }
 
 export function listCategories(): ServiceCategoryDto[] {
-  const rows = getSqlite().prepare(`SELECT id, code, name_ar nameAr, active, sort_order sortOrder, item_type itemType FROM service_categories WHERE active = 1 ORDER BY sort_order, name_ar`).all() as CategoryRow[]
+  const rows = getSqlite().prepare(`SELECT id, code, name_ar nameAr, active, sort_order sortOrder, item_type itemType, parent_id parentId FROM service_categories WHERE active = 1 ORDER BY sort_order, name_ar`).all() as CategoryRow[]
   return rows.map((row) => ({ ...row, active: Boolean(row.active) }))
 }
 
 export function saveCategory(input: ServiceCategoryInput): ServiceCategoryDto {
   const database = getSqlite()
-  const currentType = input.id ? database.prepare('SELECT item_type FROM service_categories WHERE id=? AND active=1').pluck().get(input.id) as ServiceCategoryDto['itemType'] | undefined : undefined
-  const itemType = input.itemType ?? currentType ?? 'SERVICE'
-  const duplicate = database.prepare('SELECT id, active FROM service_categories WHERE lower(name_ar) = lower(?) AND item_type = ? AND id <> COALESCE(?, \'\')').get(input.nameAr, itemType, input.id ?? null) as { id: string; active: number } | undefined
-  if (duplicate?.active) throw new Error('يوجد تصنيف بهذا الاسم بالفعل.')
-  if (input.id) {
-    database.transaction(() => {
-      const result = database.prepare('UPDATE service_categories SET name_ar=?, item_type=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND active=1').run(input.nameAr, itemType, input.id)
-      if (result.changes === 0) throw new Error('التصنيف المطلوب غير موجود.')
-      database.prepare('UPDATE services SET item_type=? WHERE category_id=? AND item_type<>?').run(itemType, input.id, itemType)
-    })()
-    const saved = listCategories().find((category) => category.id === input.id)
-    if (!saved) throw new Error('تعذر قراءة التصنيف بعد حفظه.')
-    return saved
-  }
-  if (duplicate) {
-    database.prepare('UPDATE service_categories SET active=1, name_ar=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.nameAr, duplicate.id)
-    const restored = listCategories().find((category) => category.id === duplicate.id)
-    if (!restored) throw new Error('تعذر استعادة التصنيف.')
-    return restored
-  }
-  const id = randomUUID()
-  const code = `CUSTOM_${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`
-  const sortOrder = Number(database.prepare('SELECT COALESCE(MAX(sort_order), 0) + 10 FROM service_categories').pluck().get())
-  database.prepare('INSERT INTO service_categories (id, name_ar, code, active, sort_order, item_type) VALUES (?, ?, ?, 1, ?, ?)').run(id, input.nameAr, code, sortOrder, itemType)
-  return { id, nameAr: input.nameAr, code, active: true, sortOrder, itemType }
+  const id = input.id ?? randomUUID()
+  database.transaction(() => {
+    const current = input.id ? listCategories().find((category) => category.id === input.id) : undefined
+    if (input.id && !current) throw new Error('التصنيف المطلوب غير موجود.')
+    const itemType = input.itemType ?? current?.itemType ?? 'SERVICE'
+    const parentId = input.parentId === undefined ? current?.parentId ?? null : input.parentId
+    if (parentId) {
+      const parent = listCategories().find((category) => category.id === parentId)
+      if (!parent || parent.id === id || parent.parentId || parent.itemType !== itemType) throw new Error('اختر فئة رئيسية من النوع نفسه.')
+      if (database.prepare('SELECT 1 FROM service_categories WHERE parent_id=? AND active=1').get(id)) throw new Error('انقل الفئات الثانوية أولاً قبل تحويل الفئة الرئيسية إلى ثانوية.')
+    }
+    if (database.prepare("SELECT id FROM service_categories WHERE name_ar=? AND item_type=? AND parent_id IS ? AND active=1 AND id<>?").get(input.nameAr,itemType,parentId,id)) throw new Error('يوجد تصنيف بهذا الاسم في المستوى نفسه.')
+    if (current) {
+      database.prepare('UPDATE service_categories SET name_ar=?,item_type=?,parent_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(input.nameAr,itemType,parentId,id)
+      database.prepare('UPDATE service_categories SET item_type=? WHERE parent_id=?').run(itemType,id)
+      database.prepare('UPDATE services SET item_type=? WHERE category_id=? OR category_id IN (SELECT id FROM service_categories WHERE parent_id=?)').run(itemType,id,id)
+    } else {
+      const sortOrder = Number(database.prepare('SELECT COALESCE(MAX(sort_order),0)+10 FROM service_categories').pluck().get())
+      database.prepare('INSERT INTO service_categories (id,code,name_ar,item_type,parent_id,sort_order) VALUES (?,?,?,?,?,?)').run(id,`CUSTOM_${id.replace(/-/g,'').toUpperCase()}`,input.nameAr,itemType,parentId,sortOrder)
+    }
+  })()
+  return listCategories().find((category) => category.id === id)!
 }
 
 export function deleteCategory(id: string): void {
@@ -47,6 +44,7 @@ export function deleteCategory(id: string): void {
     const category = database.prepare('SELECT name_ar nameAr FROM service_categories WHERE id=? AND active=1').get(id) as { nameAr: string } | undefined
     if (!category) throw new Error('التصنيف المطلوب غير موجود.')
     database.prepare('UPDATE services SET category_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE category_id=?').run(id)
+    database.prepare('UPDATE service_categories SET parent_id=NULL WHERE parent_id=?').run(id)
     database.prepare('UPDATE service_categories SET active=0, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(id)
   })()
 }
@@ -57,7 +55,7 @@ export function listServices(): ServiceDto[] {
       s.material_type paperType, s.size, s.color_mode colorMode, s.coverage, s.unit,
       s.item_type itemType, NULL supplierId, NULL supplierName,
       s.reorder_point reorderPoint, s.minimum_order_quantity minimumOrderQuantity, s.cost_type costType,
-      s.unit_cost unitCost, s.cost_batch_size costBatchSize, s.active, s.notes,
+      s.regular_sale_price regularSalePrice, s.offer_sale_price offerSalePrice, s.unit_cost unitCost, s.cost_batch_size costBatchSize, s.active, s.notes,
       COUNT(pr.id) pricingRulesCount, s.created_at createdAt, s.updated_at updatedAt
     FROM services s LEFT JOIN service_categories c ON c.id = s.category_id
     LEFT JOIN pricing_rules pr ON pr.service_id = s.id
@@ -87,6 +85,14 @@ export function saveService(input: ServiceInput): ServiceDto {
     } else {
       database.prepare(`INSERT INTO services (id, code, name_ar, name_he, category_id, material_type, size, color_mode, coverage, unit, item_type, supplier_id, reorder_point, minimum_order_quantity, cost_type, unit_cost, cost_batch_size, cost_calculation, sale_calculation, active, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 'COST_STRATEGY', 'PRICING_RULE', ?, ?)`)
         .run(id, input.code, input.nameAr, input.nameHe, input.categoryId, input.paperType, input.size, input.colorMode, input.coverage, input.unit, input.itemType, input.reorderPoint, input.minimumOrderQuantity, input.costType, input.unitCost, input.costBatchSize, input.active ? 1 : 0, input.notes)
+    }
+    if (input.regularSalePrice !== undefined || input.offerSalePrice !== undefined) {
+      const current = database.prepare('SELECT regular_sale_price regularSalePrice,offer_sale_price offerSalePrice FROM services WHERE id=?').get(id) as {regularSalePrice:number|null;offerSalePrice:number|null}
+      const regular = input.regularSalePrice === undefined ? current.regularSalePrice : input.regularSalePrice
+      const offer = input.offerSalePrice === undefined ? current.offerSalePrice : input.offerSalePrice
+      if (offer !== null && regular === null) throw new Error('أدخل سعر البيع قبل سعر العرض.')
+      if (input.itemType !== 'PRODUCT' && (regular !== null || offer !== null)) throw new Error('سعر العرض مخصص للمنتجات.')
+      database.prepare('UPDATE services SET regular_sale_price=?,offer_sale_price=? WHERE id=?').run(regular,offer,id)
     }
   })()
   const saved = getService(id)

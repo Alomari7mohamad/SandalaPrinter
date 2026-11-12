@@ -14,6 +14,7 @@ import catalogInventoryProductsMigration from '../database/migrations/0009_catal
 import inventoryPackagesMigration from '../database/migrations/0010_inventory_packages.sql?raw'
 import inventoryCategoriesMigration from '../database/migrations/0011_inventory_categories.sql?raw'
 import rawMaterialRecipesMigration from '../database/migrations/0013_raw_material_recipes.sql?raw'
+import hierarchyMigration from '../database/migrations/0016_catalog_hierarchy.sql?raw'
 
 const databaseState = vi.hoisted(() => ({ current: undefined as unknown as Database.Database }))
 
@@ -28,6 +29,7 @@ function createDatabase(): Database.Database {
     orderPaidAtMigration, orderBusinessLogoMigration, bilingualServiceNamesMigration, unitCostOnlyMigration,
     suppliersShortagesMigration, catalogInventoryProductsMigration, inventoryPackagesMigration, inventoryCategoriesMigration, rawMaterialRecipesMigration]) database.exec(migration)
   seedGhassanProducts(database)
+  database.exec(hierarchyMigration)
   return database
 }
 

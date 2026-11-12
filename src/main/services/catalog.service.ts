@@ -6,13 +6,15 @@ import type { MaterialRequirementInput, PricingRuleInput, ServiceCategoryInput, 
 import * as repository from '../database/catalog.repository'
 
 const nullableText = z.string().trim().max(250).nullable()
-const categorySchema = z.object({ id: z.string().min(2).max(100).optional(), nameAr: z.string().trim().min(2, 'اسم التصنيف قصير جدًا.').max(100), itemType: z.enum(['PRODUCT', 'SERVICE']).optional() })
+const categorySchema = z.object({ id: z.string().min(2).max(100).optional(), nameAr: z.string().trim().min(2, 'اسم التصنيف قصير جدًا.').max(100), itemType: z.enum(['PRODUCT', 'SERVICE']).optional(), parentId: z.string().min(2).nullable().optional() })
 const serviceSchema = z.object({
   id: z.string().uuid().or(z.string().min(2)).optional(), code: z.string().trim().min(2).max(80).regex(/^[A-Z0-9_-]+$/),
   nameAr: z.string().trim().min(2).max(150), nameHe: z.string().trim().max(150).nullable(), categoryId: z.string().min(2).nullable(), paperType: nullableText, size: nullableText,
   colorMode: nullableText, coverage: nullableText, unit: z.string().trim().min(1).max(40), costType: z.enum(costTypes),
   itemType: z.enum(['SERVICE', 'PRODUCT']), supplierId: z.string().min(2).nullable(),
   reorderPoint: z.number().nonnegative().finite(), minimumOrderQuantity: z.number().positive().finite(),
+  regularSalePrice: z.number().nonnegative().finite().nullable().optional(),
+  offerSalePrice: z.number().nonnegative().finite().nullable().optional(),
   unitCost: z.number().nonnegative().nullable(), costBatchSize: z.number().positive().nullable(), active: z.boolean(), notes: z.string().trim().max(1000).nullable()
 })
 const ruleSchema = z.object({

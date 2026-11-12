@@ -15,6 +15,8 @@ import inventoryCategoriesMigration from './migrations/0011_inventory_categories
 import typedCatalogMigration from './migrations/0015_typed_catalog.sql?raw'
 import { seedGhassanProducts } from './ghassan-products.seed'
 import { importProductSheet } from './product-sheet.import'
+import hierarchyMigration from './migrations/0016_catalog_hierarchy.sql?raw'
+import { upgradeProductHierarchy } from './product-hierarchy.upgrade'
 import { sheetProducts } from './product-sheet.data'
 import { calculatePrice } from '../../shared/pricing/pricing-engine'
 import type { PriceRule } from '../../shared/pricing/pricing-types'
@@ -42,6 +44,20 @@ beforeEach(() => {
 afterEach(() => database.close())
 
 describe('owner product price sheet', () => {
+  it('ينقل فئات الجدول تحت العناوين الرئيسية الخمسة ويحتفظ بتعديل سعر لاحق', () => {
+    importProductSheet(database)
+    database.exec("UPDATE pricing_rules SET sale_unit_price=39 WHERE id='sheet-price-001'")
+    database.transaction(() => {
+      database.exec(hierarchyMigration)
+      upgradeProductHierarchy(database)
+    })()
+    expect(database.prepare("SELECT COUNT(*) FROM service_categories WHERE id LIKE 'sheet-main-%' AND parent_id IS NULL AND item_type='PRODUCT'").pluck().get()).toBe(5)
+    expect(database.prepare("SELECT COUNT(*) FROM service_categories WHERE parent_id LIKE 'sheet-main-%' AND active=1").pluck().get()).toBe(10)
+    expect(database.prepare("SELECT regular_sale_price,offer_sale_price,unit_cost FROM services WHERE id='ghassan-product-067'").get())
+      .toEqual({regular_sale_price:45,offer_sale_price:39,unit_cost:20})
+    expect(database.prepare("SELECT total FROM orders WHERE id='old-order'").pluck().get()).toBe(9)
+    expect(database.pragma('foreign_key_check')).toEqual([])
+  })
   it('imports all 57 rows into 10 product categories and uses each offer price', () => {
     expect(sheetProducts).toHaveLength(57)
     expect(new Set(sheetProducts.map((product) => product.category)).size).toBe(10)

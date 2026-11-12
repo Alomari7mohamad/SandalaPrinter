@@ -29,8 +29,8 @@ export interface UpdateStatusDto {
 
 export type CatalogItemType = 'SERVICE' | 'PRODUCT'
 
-export interface ServiceCategoryDto { id: string; code: string; nameAr: string; active: boolean; sortOrder: number; itemType: CatalogItemType }
-export interface ServiceCategoryInput { id?: string; nameAr: string; itemType?: CatalogItemType }
+export interface ServiceCategoryDto { id: string; code: string; nameAr: string; active: boolean; sortOrder: number; itemType: CatalogItemType; parentId?: string | null }
+export interface ServiceCategoryInput { id?: string; nameAr: string; itemType?: CatalogItemType; parentId?: string | null }
 
 export interface ServiceDto {
   id: string
@@ -51,6 +51,8 @@ export interface ServiceDto {
   minimumOrderQuantity: number
   costType: CostType
   unitCost: number | null
+  regularSalePrice?: number | null
+  offerSalePrice?: number | null
   costBatchSize: number | null
   active: boolean
   notes: string | null
@@ -76,6 +78,8 @@ export interface ServiceInput {
   minimumOrderQuantity: number
   costType: CostType
   unitCost: number | null
+  regularSalePrice?: number | null
+  offerSalePrice?: number | null
   costBatchSize: number | null
   active: boolean
   notes: string | null

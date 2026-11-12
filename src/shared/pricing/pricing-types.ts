@@ -5,6 +5,9 @@ export const costTypes = ['PER_UNIT', 'FIXED_PER_ITEM', 'PER_100', 'QUANTITY_RUL
 export type CostType = typeof costTypes[number]
 
 export interface PriceableService {
+  itemType?: 'PRODUCT' | 'SERVICE'
+  regularSalePrice?: number | null
+  offerSalePrice?: number | null
   id: string
   code: string
   nameAr: string

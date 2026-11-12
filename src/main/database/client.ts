@@ -26,6 +26,8 @@ import { seedGhassanProducts } from './ghassan-products.seed'
 import { seedPrintingInventory } from './printing-inventory.seed'
 import { recoverLegacyInventoryData } from './legacy-data-recovery'
 import { seedCatalogInventorySync } from './catalog-inventory-sync.seed'
+import hierarchyMigration from './migrations/0016_catalog_hierarchy.sql?raw'
+import { upgradeProductHierarchy } from './product-hierarchy.upgrade'
 import { importProductSheet } from './product-sheet.import'
 
 let sqlite: Database.Database | undefined
@@ -97,6 +99,13 @@ export function initializeDatabase() {
     database.transaction(() => database.exec(typedCatalogMigration))()
   }
   importProductSheet(sqlite)
+  if (schemaVersion < 17) {
+    const database = sqlite
+    database.transaction(() => {
+      database.exec(hierarchyMigration)
+      upgradeProductHierarchy(database)
+    })()
+  }
   return drizzle(sqlite, { schema })
 }
 

@@ -1,10 +1,11 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Eye, EyeOff, ImagePlus, LoaderCircle, Plus, ShoppingCart, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
-import type { CreateOrderResult, ServiceDto } from '../../../shared/contracts'
+import type { CatalogItemType, CreateOrderResult, ServiceCategoryDto, ServiceDto } from '../../../shared/contracts'
 import { calculateDraftTotals, type OrderDiscountType } from '../../../shared/orders/order-draft'
 import { usesFixedQuantities, type PriceRule, type PricingResult } from '../../../shared/pricing/pricing-types'
 import { PageHeader } from '../components/PageHeader'
 import { ARABIC_WITH_LATIN_DIGITS, formatCurrency, formatNumber } from '../utils/format'
+import { catalogBranches } from '../../../shared/catalog-hierarchy'
 import { getArabicError } from '../utils/errors'
 
 interface DraftItem { key: string; service: ServiceDto; quantity: number; pricing: PricingResult }
@@ -18,13 +19,6 @@ interface StoredOrderDraft {
   customerPanelOpen: boolean
   discountType: Exclude<OrderDiscountType, 'NONE'>
   discountValue: string
-}
-
-interface CatalogGroup {
-  id: string
-  name: string
-  itemType: ServiceDto['itemType']
-  items: ServiceDto[]
 }
 
 const DRAFT_STORAGE_KEY = 'sandala:new-order-draft:v1'
@@ -45,6 +39,9 @@ function readStoredDraft(): StoredOrderDraft {
 export function NewOrderPage() {
   const [restoredDraft] = useState(readStoredDraft)
   const [services, setServices] = useState<ServiceDto[]>([])
+  const [catalogType, setCatalogType] = useState<CatalogItemType | ''>('')
+  const [categories, setCategories] = useState<ServiceCategoryDto[]>([])
+  const [secondaryId, setSecondaryId] = useState('')
   const [selectedGroupId, setSelectedGroupId] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [quantity, setQuantity] = useState('1')
@@ -69,7 +66,8 @@ export function NewOrderPage() {
   const restoredPricesRefreshed = useRef(false)
 
   useEffect(() => {
-    window.desktopApi.catalog.listServices().then((rows) => {
+    Promise.all([window.desktopApi.catalog.listServices(), window.desktopApi.catalog.listCategories()]).then(([rows, groups]) => {
+      setCategories(groups)
       const active = rows.filter((service) => service.active)
       setServices(active)
     }).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل الخدمات.'))).finally(() => setLoading(false))
@@ -130,18 +128,10 @@ export function NewOrderPage() {
     return () => { cancelled = true; window.clearTimeout(timer); setPricingLoading(false) }
   }, [selectedId, quantity, fixedQuantity, quantityOptions])
 
-  const catalogGroups = useMemo(() => {
-    const groups = new Map<string, CatalogGroup>()
-    for (const item of services) {
-      const id = item.categoryId ?? `uncategorized:${item.itemType}`
-      const group = groups.get(id)
-      if (group) group.items.push(item)
-      else groups.set(id, { id, name: item.categoryName, itemType: item.itemType, items: [item] })
-    }
-    return [...groups.values()]
-  }, [services])
-  const selectedGroup = catalogGroups.find((group) => group.id === selectedGroupId)
-  const itemLabel = selectedGroup?.itemType === 'PRODUCT' ? 'المنتج' : selectedGroup ? 'الخدمة' : 'المنتج أو الخدمة'
+  const branches = useMemo(() => catalogType ? catalogBranches(categories, services, catalogType) : [], [categories, services, catalogType])
+  const selectedGroup = branches.find((branch) => branch.id === selectedGroupId)
+  const selectedSecondary = selectedGroup?.children.find((child) => child.id === secondaryId)
+  const itemLabel = catalogType === 'PRODUCT' ? 'المنتج' : catalogType === 'SERVICE' ? 'الخدمة' : 'المنتج أو الخدمة'
   const subtotalBeforeDiscount = useMemo(() => calculateDraftTotals(items.map((item) => ({ salePrice: item.pricing.salePrice ?? 0, cost: item.pricing.cost ?? 0 }))).subtotal, [items])
   const maximumFixedDiscount = Math.floor(subtotalBeforeDiscount * 0.1)
   const parsedDiscountValue = Number(discountValue)
@@ -165,9 +155,16 @@ export function NewOrderPage() {
   }
 
   const selectGroup = (groupId: string) => {
-    const group = catalogGroups.find((item) => item.id === groupId)
+    const group = branches.find((branch) => branch.id === groupId)
+    const onlyChild = group?.children.length === 1 ? group.children[0] : undefined
     setSelectedGroupId(groupId)
-    selectService(group?.items.length === 1 ? group.items[0]!.id : '')
+    setSecondaryId(onlyChild?.id ?? '')
+    selectService(onlyChild?.items.length === 1 ? onlyChild.items[0]!.id : '')
+  }
+  const selectSecondary = (id: string) => {
+    setSecondaryId(id)
+    const child = selectedGroup?.children.find((item) => item.id === id)
+    selectService(child?.items.length === 1 ? child.items[0]!.id : '')
   }
   const selectService = (serviceId: string) => {
     const service = services.find((item) => item.id === serviceId)
@@ -193,7 +190,7 @@ export function NewOrderPage() {
   const cancelDraft = () => {
     if (!window.confirm('هل أنت متأكد من إلغاء الطلب الحالي وحذف مسودته؟')) return
     setItems([]); setCustomerName(''); setCustomerPhone(''); setDeliveryAddress(''); setBusinessLogoDataUrl(null); setNotes(''); setCustomerPanelOpen(false)
-    setDiscountType('FIXED'); setDiscountValue(''); setSelectedGroupId(''); setSelectedId(''); setQuantity('1'); setPricing(null); setSavedOrder(null); setError('')
+    setDiscountType('FIXED'); setDiscountValue(''); setCatalogType(''); setSecondaryId(''); setSelectedGroupId(''); setSelectedId(''); setQuantity('1'); setPricing(null); setSavedOrder(null); setError('')
     window.localStorage.removeItem(DRAFT_STORAGE_KEY)
   }
   const saveOrder = async () => {
@@ -246,12 +243,14 @@ export function NewOrderPage() {
         </section>
 
         <section className="panel service-composer">
-          <div className="section-title"><div><h2>اختيار الصنف والكمية</h2><p>اختر التصنيف ثم المنتج أو الخدمة المطلوبة</p></div><Plus size={22} /></div>
+          <div className="section-title"><div><h2>اختيار الصنف والكمية</h2><p>نوع الطلب ثم الفئة الرئيسية والثانوية، وحدد الصنف والكمية</p></div><Plus size={22} /></div>
           {loading ? <div className="table-state"><LoaderCircle className="spin" size={27} /> جارٍ تحميل الخدمات...</div> : services.length === 0 ? <div className="table-state">لا توجد منتجات أو خدمات نشطة.</div> : <div className="composer-body">
             <div className="service-hierarchy-grid">
-              <label><span><b>1</b> التصنيف</span><select name="serviceCategory" value={selectedGroupId} onChange={(event) => selectGroup(event.target.value)}><option value="" disabled hidden>اختر التصنيف</option>{catalogGroups.map((group) => <option key={group.id} value={group.id}>{group.name} ({group.itemType === 'PRODUCT' ? 'منتجات' : 'خدمات'})</option>)}</select></label>
-              <label><span><b>2</b> {itemLabel}</span><select name="serviceProduct" value={selectedId} disabled={!selectedGroup} onChange={(event) => selectService(event.target.value)}><option value="" disabled hidden>اختر {itemLabel}</option>{selectedGroup?.items.map((item) => <option key={item.id} value={item.id}>{item.nameAr}</option>)}</select></label>
-              <label><span><b>3</b> الكمية</span>{fixedQuantity ? <select name="serviceQuantity" value={quantity} disabled={rulesLoading || quantityOptions.length === 0} onChange={(event) => setQuantity(event.target.value)}><option value="" disabled hidden>{rulesLoading ? 'جارٍ التحميل...' : 'اختر الكمية'}</option>{quantityOptions.map((value) => <option key={value} value={value}>{formatNumber(value)}</option>)}</select> : <input name="serviceQuantity" type="number" min="1" step="1" disabled={!selected} value={quantity} onChange={(event) => setQuantity(event.target.value)} />}</label>
+              <label><span><b>1</b> النوع</span><select name="catalogType" value={catalogType} onChange={(event) => { setCatalogType(event.target.value as CatalogItemType); setSelectedGroupId(''); setSecondaryId(''); selectService('') }}><option value="" disabled hidden>منتج أم خدمة؟</option><option value="PRODUCT">منتج</option><option value="SERVICE">خدمة</option></select></label>
+              <label><span><b>2</b> الفئة الرئيسية</span><select name="serviceCategory" value={selectedGroupId} disabled={!catalogType} onChange={(event) => selectGroup(event.target.value)}><option value="" disabled hidden>اختر الفئة الرئيسية</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
+              <label><span><b>3</b> الفئة الثانوية</span><select name="secondaryCategory" value={secondaryId} disabled={!selectedGroup} onChange={(event) => selectSecondary(event.target.value)}><option value="" disabled hidden>اختر الفئة الثانوية</option>{selectedGroup?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label>
+              <label><span><b>4</b> {itemLabel}</span><select name="serviceProduct" value={selectedId} disabled={!selectedSecondary} onChange={(event) => selectService(event.target.value)}><option value="" disabled hidden>اختر {itemLabel}</option>{selectedSecondary?.items.map((item) => <option key={item.id} value={item.id}>{item.nameAr}</option>)}</select></label>
+              <label><span><b>5</b> الكمية</span>{fixedQuantity ? <select name="serviceQuantity" value={quantity} disabled={rulesLoading || quantityOptions.length === 0} onChange={(event) => setQuantity(event.target.value)}><option value="" disabled hidden>{rulesLoading ? 'جارٍ التحميل...' : 'اختر الكمية'}</option>{quantityOptions.map((value) => <option key={value} value={value}>{formatNumber(value)}</option>)}</select> : <input name="serviceQuantity" type="number" min="1" step="1" disabled={!selected} value={quantity} onChange={(event) => setQuantity(event.target.value)} />}</label>
             </div>
             {selected && fixedQuantity && <div className="fixed-quantity-note">هذه الخدمة تُباع بكميات محددة؛ اختر الكمية من القائمة.</div>}
             <div className={`automatic-price-area${selected ? '' : ' hidden'}`}>
