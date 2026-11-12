@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ConfirmationProvider'
 import { CalendarClock, ChevronLeft, ChevronRight, Clock3, Coins, Edit3, LoaderCircle, Save, Sparkles, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReportRangeInput, WorkLogDto, WorkLogReportDto } from '../../../shared/contracts'
@@ -17,6 +18,7 @@ const shiftMonth = (month: string, amount: number) => {
 }
 
 export function WorkLogPage() {
+  const confirm = useConfirm()
   const [workDate, setWorkDate] = useState(today)
   const [regularHours, setRegularHours] = useState('')
   const [increasedHours, setIncreasedHours] = useState('')
@@ -66,7 +68,7 @@ export function WorkLogPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   const remove = async (row: WorkLogDto) => {
-    if (!window.confirm(`هل تريد حذف سجل العمل ليوم ${dateLabel(row.workDate)}؟\n\nسيُعاد حساب الساعات والأجر الإجمالي مباشرة.`)) return
+    if (!await confirm(`هل تريد حذف سجل العمل ليوم ${dateLabel(row.workDate)}؟\n\nسيُعاد حساب الساعات والأجر الإجمالي مباشرة.`)) return
     setDeletingId(row.id); setError(''); setSuccess('')
     try {
       await window.desktopApi.workLogs.delete(row.id)

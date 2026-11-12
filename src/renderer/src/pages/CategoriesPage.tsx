@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ConfirmationProvider'
 import { Edit3, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { CatalogItemType, ServiceCategoryDto } from '../../../shared/contracts'
@@ -6,6 +7,7 @@ import { PageHeader } from '../components/PageHeader'
 import { getArabicError } from '../utils/errors'
 
 export function CategoriesPage() {
+  const confirm = useConfirm()
   const [categories, setCategories] = useState<ServiceCategoryDto[]>([])
   const [loading, setLoading] = useState(true)
   const [itemType, setItemType] = useState<CatalogItemType>('PRODUCT')
@@ -26,7 +28,7 @@ export function CategoriesPage() {
   useEffect(() => { void load() }, [])
 
   const removeCategory = async (category: ServiceCategoryDto) => {
-    if (deleting || !window.confirm(`هل تريد حذف «${category.nameAr}»؟\nتنتقل عناصرها إلى «غير مصنف»، وتصبح فئاتها الثانوية فئات رئيسية.`)) return
+    if (deleting || !await confirm(`هل تريد حذف «${category.nameAr}»؟\nتنتقل عناصرها إلى «غير مصنف»، وتصبح فئاتها الثانوية فئات رئيسية.`)) return
     setDeleting(true)
     setError('')
     try {

@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ConfirmationProvider'
 import { AlertTriangle, Calculator, CircleDollarSign, Edit3, Eye, EyeOff, Layers3, Plus, Save, Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -17,6 +18,7 @@ const serviceInput = (service: ServiceDto, cost: number | null): ServiceInput =>
 const categoryKey = (service: ServiceDto) => service.categoryId ?? '__uncategorized__'
 
 export function PricingPage() {
+  const confirm = useConfirm()
   const [params, setParams] = useSearchParams()
   const [editingProduct, setEditingProduct] = useState(false)
   const [categories, setCategories] = useState<ServiceCategoryDto[]>([])
@@ -75,7 +77,7 @@ export function PricingPage() {
   const saveCost = async () => { if (!selected) return; setSavingCost(true); setError(''); try { const saved = await window.desktopApi.catalog.saveService(serviceInput(selected, cost)); setServices((rows) => rows.map((row) => row.id === saved.id ? saved : row)); setResult(null); window.dispatchEvent(new Event('sandala:catalog-changed')) } catch (cause) { setError(getArabicError(cause, 'تعذر حفظ التكلفة.')) } finally { setSavingCost(false) } }
   const toggleRule = async (rule: PriceRule) => { try { await window.desktopApi.pricing.setRuleActive(rule.id, !rule.active); setRules((rows) => rows.map((row) => row.id === rule.id ? { ...row, active: !row.active } : row)); setResult(null); window.dispatchEvent(new Event('sandala:catalog-changed')) } catch (cause) { setError(getArabicError(cause)) } }
   const changeRuleCount = (serviceId: string, delta: number) => setServices((rows) => rows.map((row) => row.id === serviceId ? { ...row, pricingRulesCount: Math.max(0, row.pricingRulesCount + delta) } : row))
-  const deleteRule = async (rule: PriceRule) => { if (!window.confirm('هل تريد حذف قاعدة السعر هذه؟')) return; try { await window.desktopApi.pricing.deleteRule(rule.id); setRules((rows) => rows.filter((row) => row.id !== rule.id)); changeRuleCount(rule.serviceId, -1); setResult(null); window.dispatchEvent(new Event('sandala:catalog-changed')) } catch (cause) { setError(getArabicError(cause, 'تعذر حذف قاعدة السعر.')) } }
+  const deleteRule = async (rule: PriceRule) => { if (!await confirm('هل تريد حذف قاعدة السعر هذه؟')) return; try { await window.desktopApi.pricing.deleteRule(rule.id); setRules((rows) => rows.filter((row) => row.id !== rule.id)); changeRuleCount(rule.serviceId, -1); setResult(null); window.dispatchEvent(new Event('sandala:catalog-changed')) } catch (cause) { setError(getArabicError(cause, 'تعذر حذف قاعدة السعر.')) } }
 
   if (loading) return <div className="page"><PageHeader title="الأسعار" /><div className="panel table-state">جارٍ تحميل الأسعار...</div></div>
   return <div className="page pricing-page">

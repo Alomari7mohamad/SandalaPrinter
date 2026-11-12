@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ConfirmationProvider'
 import { Edit3, Eye, Plus, Search, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -11,6 +12,7 @@ import { getArabicError } from '../utils/errors'
 const costLabel = (service: ServiceDto) => service.unitCost === null ? 'غير محددة' : `${service.unitCost} ₪ / ${service.unit}`
 
 export function ServicesPage({ itemType }: { itemType: CatalogItemType }) {
+  const confirm = useConfirm()
   const isProduct = itemType === 'PRODUCT'
   const pageTitle = isProduct ? 'المنتجات' : 'الخدمات'
   const itemLabel = isProduct ? 'المنتج' : 'الخدمة'
@@ -54,7 +56,7 @@ export function ServicesPage({ itemType }: { itemType: CatalogItemType }) {
     catch (cause) { setError(getArabicError(cause)) }
   }
   const remove = async (service: ServiceDto) => {
-    if (deletingId || !window.confirm(`هل تريد حذف ${itemLabel} «${service.nameAr}»؟\nستبقى تفاصيل الطلبات السابقة محفوظة.`)) return
+    if (deletingId || !await confirm(`هل تريد حذف ${itemLabel} «${service.nameAr}»؟\nستبقى تفاصيل الطلبات السابقة محفوظة.`)) return
     setDeletingId(service.id); setError('')
     try {
       await window.desktopApi.catalog.deleteService(service.id)

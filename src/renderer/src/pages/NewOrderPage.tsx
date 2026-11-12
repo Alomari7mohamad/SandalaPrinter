@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ConfirmationProvider'
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Eye, EyeOff, ImagePlus, LoaderCircle, Plus, ShoppingCart, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import type { CatalogItemType, CreateOrderResult, ServiceCategoryDto, ServiceDto } from '../../../shared/contracts'
@@ -37,6 +38,7 @@ function readStoredDraft(): StoredOrderDraft {
 }
 
 export function NewOrderPage() {
+  const confirm = useConfirm()
   const [restoredDraft] = useState(readStoredDraft)
   const [services, setServices] = useState<ServiceDto[]>([])
   const [catalogType, setCatalogType] = useState<CatalogItemType | ''>('')
@@ -187,8 +189,8 @@ export function NewOrderPage() {
     reader.onerror = () => setError('تعذر قراءة ملف الشعار.')
     reader.readAsDataURL(file)
   }
-  const cancelDraft = () => {
-    if (!window.confirm('هل أنت متأكد من إلغاء الطلب الحالي وحذف مسودته؟')) return
+  const cancelDraft = async () => {
+    if (!await confirm('هل أنت متأكد من إلغاء الطلب الحالي وحذف مسودته؟')) return
     setItems([]); setCustomerName(''); setCustomerPhone(''); setDeliveryAddress(''); setBusinessLogoDataUrl(null); setNotes(''); setCustomerPanelOpen(false)
     setDiscountType('FIXED'); setDiscountValue(''); setCatalogType(''); setSecondaryId(''); setSelectedGroupId(''); setSelectedId(''); setQuantity('1'); setPricing(null); setSavedOrder(null); setError('')
     window.localStorage.removeItem(DRAFT_STORAGE_KEY)

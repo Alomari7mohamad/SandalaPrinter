@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/ConfirmationProvider'
 import { CheckCircle2, Download, LoaderCircle, RefreshCw, Save, Settings, ShieldCheck, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DEFAULT_UPDATE_FEED_URL, type AppInfo, type UpdateSettingsDto, type UpdateStatusDto } from '../../../shared/contracts'
@@ -8,6 +9,7 @@ import { formatNumber } from '../utils/format'
 const initialSettings: UpdateSettingsDto = { feedUrl: DEFAULT_UPDATE_FEED_URL, autoCheck: true }
 
 export function SettingsPage() {
+  const confirm = useConfirm()
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [settings, setSettings] = useState(initialSettings)
   const [status, setStatus] = useState<UpdateStatusDto | null>(null)
@@ -50,7 +52,7 @@ export function SettingsPage() {
     catch (cause) { setError(getArabicError(cause, 'تعذر بدء تثبيت التحديث.')) ; setBusy('') }
   }
   const clearSales = async () => {
-    const confirmed = window.confirm('سيتم حذف جميع الطلبات وبنود الطلب والمدفوعات وأرقام المبيعات والأرباح نهائيًا.\n\nلن يتم حذف التصنيفات أو الخدمات أو المنتجات أو الأسعار.\n\nهل تريد متابعة الحذف؟')
+    const confirmed = await confirm('سيتم حذف جميع الطلبات وبنود الطلب والمدفوعات وأرقام المبيعات والأرباح نهائيًا.\n\nلن يتم حذف التصنيفات أو الخدمات أو المنتجات أو الأسعار.\n\nهل تريد متابعة الحذف؟')
     if (!confirmed) return
     setClearingSales(true); setError(''); setSalesClearMessage('')
     try {
