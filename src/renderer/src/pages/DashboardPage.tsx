@@ -7,11 +7,20 @@ import { DailyPerformanceCharts } from '../components/DailyPerformanceCharts'
 import { ARABIC_WITH_LATIN_DIGITS, formatCurrency } from '../utils/format'
 import { formatNumber } from '../utils/format'
 import { currentMonthRange, lastDaysRange } from '../utils/date-range'
+import { productCounts } from '../../../shared/product-counts'
 
 const initialStats: DashboardStats = { todaySales: 0, todayCost: 0, todayProfit: 0, todayOrders: 0, monthSales: 0, monthCost: 0, monthProfit: 0, monthExpenses: 0, monthNetProfit: 0, marginPercent: 0 }
 const money = (value: number) => formatCurrency(value)
 export function DashboardPage() {
   const [stats, setStats] = useState(initialStats)
+  const [totalProducts, setTotalProducts] = useState<number | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const reload = () => { void window.desktopApi.catalog.listServices().then((items) => { if (!cancelled) setTotalProducts(productCounts([], items).total) }).catch((cause) => { if (!cancelled) setError(getArabicError(cause, 'تعذر تحميل عدد المنتجات.')) }) }
+    reload()
+    window.addEventListener('sandala:catalog-changed', reload)
+    return () => { cancelled = true; window.removeEventListener('sandala:catalog-changed', reload) }
+  }, [])
 
   const [monthReport, setMonthReport] = useState<BusinessReportDto | null>(null)
   const [weekReport, setWeekReport] = useState<BusinessReportDto | null>(null)
@@ -36,6 +45,7 @@ export function DashboardPage() {
     <div className="page dashboard-page">
       <PageHeader title="الرئيسية" subtitle={`نظرة سريعة على أداء المطبعة • ${new Intl.DateTimeFormat(ARABIC_WITH_LATIN_DIGITS, { dateStyle: 'full' }).format(new Date())}`} />
       {error && <div className="alert error">{error}</div>}
+      <section className="dashboard-catalog-summary" aria-label="ملخص المنتجات"><MetricCard label="إجمالي المنتجات في التطبيق" value={totalProducts === null ? '—' : formatNumber(totalProducts)} icon={ShoppingBag} /><p>جميع المنتجات المسجلة، النشطة وغير النشطة، دون الخدمات.</p></section>
       <div className="dashboard-section-heading"><div><span>اليوم</span><h2>ملخص العمل الحالي</h2></div><p>الأرقام المالية تظهر للطلبات التي تم تسجيل دفعها</p></div>
       <section className="metrics-grid">
         <MetricCard label="مبيعات اليوم" value={money(stats.todaySales)} icon={WalletCards} tone="green" />

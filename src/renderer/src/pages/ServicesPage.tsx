@@ -8,6 +8,8 @@ import { PageHeader } from '../components/PageHeader'
 import { ServiceDialog } from '../components/ServiceDialog'
 import { catalogBranches } from '../../../shared/catalog-hierarchy'
 import { getArabicError } from '../utils/errors'
+import { productCounts } from '../../../shared/product-counts'
+import { formatNumber } from '../utils/format'
 
 const costLabel = (service: ServiceDto) => service.unitCost === null ? 'غير محددة' : `${service.unitCost} ₪ / ${service.unit}`
 
@@ -46,6 +48,7 @@ export function ServicesPage({ itemType }: { itemType: CatalogItemType }) {
   }, [])
   const branches = useMemo(() => catalogBranches(categories, services, itemType), [categories, services, itemType])
   const selectedBranch = branches.find((branch) => branch.id === mainCategory)
+  const counts = useMemo(() => productCounts(categories, services), [categories, services])
   const filtered = useMemo(() => services.filter((service) => {
     const query = search.trim().toLowerCase()
     const searchable = `${service.nameAr} ${service.nameHe ?? ''} ${service.code} ${service.paperType ?? ''} ${service.size ?? ''} ${service.colorMode ?? ''}`.toLowerCase()
@@ -70,6 +73,11 @@ export function ServicesPage({ itemType }: { itemType: CatalogItemType }) {
     <PageHeader title={pageTitle} subtitle={`إدارة ${pageTitle} وتصنيفاتها وأسعارها`} action={<button className="primary-button" onClick={() => setEditing('new')} disabled={categories.length === 0}><Plus size={18} /> {isProduct ? 'إضافة منتج' : 'إضافة خدمة'}</button>} />
     {!loading && categories.length === 0 && <div className="alert">أضف تصنيفًا من نوع {pageTitle} في <button className="secondary-button" onClick={() => navigate('/categories')}>صفحة التصنيفات</button></div>}
     {error && <div className="alert error">{error}</div>}
+    {isProduct && !loading && <section className="product-count-cards" aria-label="أعداد المنتجات">
+      <article><span>إجمالي المنتجات</span><strong dir="ltr">{formatNumber(counts.total)}</strong><small>يشمل النشط وغير النشط</small></article>
+      {selectedBranch && <article><span>{selectedBranch.name}</span><strong dir="ltr">{formatNumber(mainCategory === 'uncategorized' ? counts.uncategorized : counts.byCategory[mainCategory] ?? 0)}</strong><small>إجمالي منتجات الفئة الرئيسية وفئاتها الثانوية</small></article>}
+      {category !== 'all' && selectedBranch && <article><span>{selectedBranch.children.find((child) => child.id === category)?.name}</span><strong dir="ltr">{formatNumber(selectedBranch.children.find((child) => child.id === category)?.items.length ?? 0)}</strong><small>إجمالي منتجات الفئة الثانوية</small></article>}
+    </section>}
     <section className="panel catalog-panel">
       <div className="filters-bar"><div className="search-field"><Search size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث بالاسم، A4، خرومو، ملون..." /></div><select aria-label="فلترة الفئة الرئيسية" value={mainCategory} onChange={(event) => { setMainCategory(event.target.value); setCategory('all') }}><option value="all">كل الفئات الرئيسية</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select><select aria-label="فلترة الفئة الثانوية" disabled={!selectedBranch} value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">كل الفئات الثانوية</option>{selectedBranch?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">كل الحالات</option><option value="true">نشط</option><option value="false">غير نشط</option></select></div>
       {loading ? <div className="table-state">جارٍ تحميل {pageTitle}...</div> : filtered.length === 0 ? <div className="table-state">لا توجد نتائج مطابقة.</div> : <div className="table-scroll services-table-scroll"><table className="data-table services-pricing-table"><thead><tr><th>{itemLabel}</th><th>التصنيف</th><th>المواصفات</th><th>التكلفة</th><th>{isProduct ? 'البيع والعرض' : 'قواعد السعر'}</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>{filtered.map((service) => <tr key={service.id}><td><b>{service.nameAr}</b>{service.nameHe && <small dir="rtl">{service.nameHe}</small>}</td><td>{service.categoryName}</td><td>{[service.size, isProduct ? null : service.paperType, service.colorMode, service.unit].filter(Boolean).join(' • ') || '—'}</td><td dir="ltr">{costLabel(service)}</td><td>{isProduct ? <div className="product-price-pair"><small>البيع {service.regularSalePrice ?? '—'} ₪</small><b>العرض {service.offerSalePrice ?? '—'} ₪</b></div> : <span className="rules-count">{service.pricingRulesCount}</span>}</td><td><span className={`badge ${service.active ? 'success' : 'muted'}`}>{service.active ? 'نشط' : 'غير نشط'}</span></td><td><div className="row-actions"><button title="تعديل" onClick={() => setEditing(service)}><Edit3 size={16} /></button><button title={service.active ? 'تعطيل' : 'تفعيل'} onClick={() => void toggle(service)}>{service.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}</button><button title="عرض الأسعار" onClick={() => navigate(`/pricing?service=${service.id}`)}><Eye size={17} /></button><button className="danger" type="button" disabled={Boolean(deletingId)} title={`حذف ${itemLabel}`} aria-label={`حذف ${itemLabel} ${service.nameAr}`} onClick={() => void remove(service)}><Trash2 size={17} /></button></div></td></tr>)}</tbody></table></div>}
