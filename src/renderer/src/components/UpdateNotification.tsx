@@ -8,11 +8,20 @@ export function UpdateNotification() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    void Promise.all([window.desktopApi.updates.getSettings(),window.desktopApi.updates.getStatus()]).then(([settings,current])=>{
+    let receivedStatus = false
+    let active = true
+    const updates = window.desktopApi.updates
+    const unsubscribe = updates.onStatusChanged((current) => {
+      receivedStatus = true
       setStatus(current)
-      if(settings.autoCheck && ['idle','not-available','error'].includes(current.state)) void window.desktopApi.updates.check().then(setStatus).catch(()=>undefined)
     })
-    return window.desktopApi.updates.onStatusChanged(setStatus)
+    void updates.getStatus().then((current) => {
+      if (active && !receivedStatus) setStatus(current)
+    }).catch(() => undefined)
+    return () => {
+      active = false
+      unsubscribe()
+    }
   }, [])
 
   if (!status || !['available', 'downloading', 'downloaded'].includes(status.state)) return null

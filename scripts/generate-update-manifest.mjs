@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFile, stat, writeFile } from 'node:fs/promises'
+import { copyFile, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -7,6 +7,9 @@ const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const packageJson = JSON.parse(await readFile(join(projectRoot, 'package.json'), 'utf8'))
 const installerName = 'Sandala-Printer-Setup.exe'
 const installerPath = join(projectRoot, 'release', installerName)
+const blockmapName = `${installerName}.blockmap`
+const blockmapPath = join(projectRoot, 'release', blockmapName)
+await stat(blockmapPath)
 const installer = await readFile(installerPath)
 const installerStats = await stat(installerPath)
 const sha512 = createHash('sha512').update(installer).digest('base64')
@@ -23,4 +26,7 @@ const manifest = [
 ].join('\n')
 
 await writeFile(join(projectRoot, 'release', 'latest.yml'), manifest, 'utf8')
-console.log(`Generated release/latest.yml for version ${packageJson.version}`)
+await copyFile(installerPath, join(projectRoot, installerName))
+await copyFile(blockmapPath, join(projectRoot, blockmapName))
+await copyFile(join(projectRoot, 'release', 'latest.yml'), join(projectRoot, 'latest.yml'))
+console.log(`Prepared GitHub Pages update files for version ${packageJson.version}`)

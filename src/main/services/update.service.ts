@@ -6,6 +6,10 @@ let initialized = false
 let autoUpdater: typeof import('electron-updater')['autoUpdater'] | undefined
 let checkingPromise: Promise<UpdateStatusDto> | null = null
 let lastNotifiedVersion: string | null = null
+let automaticTimer: ReturnType<typeof setTimeout> | undefined
+let lastCheckStartedAt = -Infinity
+const automaticCheckInterval = 60_000
+const focusCheckCooldown = 15_000
 let status: UpdateStatusDto = {
   state: 'idle', currentVersion: app.getVersion(), availableVersion: null, progress: null, message: 'جاهز لفحص التحديثات.'
 }
@@ -25,6 +29,27 @@ function publish(next: Partial<UpdateStatusDto>): UpdateStatusDto {
 function configureFeed(feedUrl: string): void {
   if (!feedUrl || !autoUpdater) return
   autoUpdater.setFeedURL({ provider: 'generic', url: feedUrl })
+}
+
+function checkAutomatically(): void {
+  if (lastCheckStartedAt === -Infinity || Date.now() - lastCheckStartedAt < focusCheckCooldown) return
+  void checkForUpdates()
+}
+
+function scheduleAutomaticChecks(settings: UpdateSettingsDto, delay: number): void {
+  clearTimeout(automaticTimer)
+  automaticTimer = undefined
+  app.removeListener('browser-window-focus', checkAutomatically)
+  if (!app.isPackaged || !settings.autoCheck || !settings.feedUrl) return
+
+  const tick = () => {
+    void checkForUpdates()
+    automaticTimer = setTimeout(tick, automaticCheckInterval)
+    automaticTimer.unref()
+  }
+  automaticTimer = setTimeout(tick, delay)
+  automaticTimer.unref()
+  app.on('browser-window-focus', checkAutomatically)
 }
 
 function validateSettings(input: UpdateSettingsDto): UpdateSettingsDto {
@@ -54,21 +79,16 @@ export async function initializeUpdateService(): Promise<void> {
   // إذا أُغلق التطبيق بعد اكتمال التنزيل، ثبّت التحديث أيضاً كمسار احتياطي.
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.autoRunAppAfterInstall = true
-  autoUpdater.on('checking-for-update', () => publish({ state: 'checking', progress: null, message: 'جارٍ البحث عن تحديث...' }))
+  autoUpdater.on('checking-for-update', () => {
+    if (status.state !== 'available') publish({ state: 'checking', progress: null, message: 'جارٍ البحث عن تحديث...' })
+  })
   autoUpdater.on('update-available', (info) => publish({ state: 'available', availableVersion: info.version, progress: null, message: `يتوفر تحديث جديد: الإصدار ${info.version}` }))
   autoUpdater.on('update-not-available', () => publish({ state: 'not-available', availableVersion: null, progress: null, message: 'أنت تستخدم أحدث إصدار.' }))
   autoUpdater.on('download-progress', (progress) => publish({ state: 'downloading', progress: Math.round(progress.percent), message: `جارٍ تنزيل التحديث: ${Math.round(progress.percent)}%` }))
   autoUpdater.on('update-downloaded', (info) => publish({ state: 'downloaded', availableVersion: info.version, progress: 100, message: 'اكتمل تنزيل التحديث وأصبح جاهزًا للتثبيت.' }))
   autoUpdater.on('error', () => publish({ state: 'error', progress: null, message: 'تعذر الاتصال بمصدر التحديث أو التحقق من ملف الإصدار.' }))
 
-  const settings = settingsRepository.ensureUpdateSettings()
-  if (app.isPackaged && settings.autoCheck && settings.feedUrl) {
-    configureFeed(settings.feedUrl)
-    const initialTimer = setTimeout(() => { void checkForUpdates() }, 1500)
-    initialTimer.unref()
-    const periodicTimer = setInterval(() => { void checkForUpdates() }, 6 * 60 * 60 * 1000)
-    periodicTimer.unref()
-  }
+  scheduleAutomaticChecks(settingsRepository.ensureUpdateSettings(), 1500)
 }
 
 export function getStatus(): UpdateStatusDto { return status }
@@ -77,30 +97,46 @@ export function getSettings(): UpdateSettingsDto { return settingsRepository.get
 export function saveSettings(input: UpdateSettingsDto): UpdateSettingsDto {
   const settings = validateSettings(input)
   const saved = settingsRepository.saveUpdateSettings(settings)
-  if (saved.feedUrl) configureFeed(saved.feedUrl)
   // لا نمسح نتيجة فحص أو تنزيل قائم عند حفظ الخيارات.
   if (status.state === 'idle' || status.state === 'not-available' || status.state === 'disabled' || status.state === 'error') {
     publish({ message: 'تم حفظ إعدادات التحديث.' })
   }
-  if (app.isPackaged && saved.autoCheck) setTimeout(() => { void checkForUpdates() }, 0)
+  scheduleAutomaticChecks(saved, 0)
   return saved
 }
 
 export async function checkForUpdates(): Promise<UpdateStatusDto> {
   if (checkingPromise) return checkingPromise
-  const settings = settingsRepository.getUpdateSettings()
+  if (['downloading', 'downloaded', 'installing'].includes(status.state)) return status
   if (!app.isPackaged) return publish({ state: 'disabled', message: 'فحص التحديثات يعمل بعد تثبيت نسخة Windows النهائية.' })
   if (!autoUpdater) return publish({ state: 'error', message: 'خدمة التحديث غير متاحة حاليًا.' })
+  const updater = autoUpdater
+  const settings = settingsRepository.getUpdateSettings()
   if (!settings.feedUrl) return publish({ state: 'disabled', message: 'أضف رابط مصدر التحديث في الإعدادات أولًا.' })
-  configureFeed(settings.feedUrl)
-  checkingPromise=(async()=>{ try { await autoUpdater?.checkForUpdates(); return status } finally { checkingPromise=null } })()
+  lastCheckStartedAt = Date.now()
+  checkingPromise = Promise.resolve().then(async () => {
+    configureFeed(settings.feedUrl)
+    await updater.checkForUpdates()
+    return status
+  }).catch(() => {
+    return status.state === 'error' ? status : publish({ state: 'error', progress: null, message: 'تعذر الاتصال بمصدر التحديث أو التحقق من ملف الإصدار.' })
+  }).finally(() => {
+    checkingPromise = null
+  })
   return checkingPromise
 }
 
 export async function downloadUpdate(): Promise<void> {
+  if (checkingPromise) await checkingPromise
   if (status.state !== 'available') throw new Error('لا يوجد تحديث متاح للتنزيل.')
   if (!autoUpdater) throw new Error('خدمة التحديث غير متاحة حاليًا.')
-  await autoUpdater.downloadUpdate()
+  publish({ state: 'downloading', progress: 0, message: 'جارٍ تنزيل التحديث...' })
+  try {
+    await autoUpdater.downloadUpdate()
+  } catch (error) {
+    if (getStatus().state !== 'error') publish({ state: 'error', progress: null, message: 'تعذر تنزيل التحديث.' })
+    throw error
+  }
 }
 
 export function installUpdate(): void {

@@ -26,6 +26,7 @@ import { seedGhassanProducts } from './ghassan-products.seed'
 import { seedPrintingInventory } from './printing-inventory.seed'
 import { recoverLegacyInventoryData } from './legacy-data-recovery'
 import { seedCatalogInventorySync } from './catalog-inventory-sync.seed'
+import { importProductSheet } from './product-sheet.import'
 
 let sqlite: Database.Database | undefined
 
@@ -95,6 +96,7 @@ export function initializeDatabase() {
     const database = sqlite
     database.transaction(() => database.exec(typedCatalogMigration))()
   }
+  importProductSheet(sqlite)
   return drizzle(sqlite, { schema })
 }
 

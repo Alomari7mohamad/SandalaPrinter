@@ -72,7 +72,7 @@ export function SettingsPage() {
         <div className="section-title"><div><h2>تحديث التطبيق</h2><p>يفحص التطبيق الإصدارات الجديدة وينزّلها ويثبتها دون تنزيل البرنامج يدويًا.</p></div><RefreshCw size={23} /></div>
         <div className="update-settings-form">
           <label>رابط مصدر التحديث<input dir="ltr" type="url" value={settings.feedUrl} onChange={(event) => setSettings({ ...settings, feedUrl: event.target.value })} placeholder="https://updates.example.com/sandala-printer" /></label>
-          <label className="auto-update-check"><input type="checkbox" checked={settings.autoCheck} onChange={(event) => setSettings({ ...settings, autoCheck: event.target.checked })} /><span><b>فحص التحديث تلقائيًا</b><small>سيظهر إشعار داخل التطبيق فور توفر إصدار أحدث.</small></span></label>
+          <label className="auto-update-check"><input type="checkbox" checked={settings.autoCheck} onChange={(event) => setSettings({ ...settings, autoCheck: event.target.checked })} /><span><b>فحص التحديث تلقائيًا</b><small>يفحص التطبيق عند التشغيل وكل دقيقة أثناء عمله.</small></span></label>
           <div className="update-form-actions"><button className="secondary-button" disabled={Boolean(busy)} onClick={() => void saveSettings()}>{busy === 'save' ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} حفظ الإعدادات</button><button className="primary-button" disabled={Boolean(busy)} onClick={() => void check()}>{busy === 'check' ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />} فحص الآن</button></div>
         </div>
       </section>
