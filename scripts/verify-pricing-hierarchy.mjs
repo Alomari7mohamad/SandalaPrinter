@@ -1,0 +1,93 @@
+import {spawn} from 'node:child_process';
+import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import net from 'node:net';
+const root=mkdtempSync(join(tmpdir(),'sandala-hierarchy-'));
+mkdirSync(join(root,'data'));
+const db=new DatabaseSync(join(root,'data','oh-printer-manager.db'));
+db.exec("CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP); INSERT INTO app_settings (key,value) VALUES ('migration.legacyInventoryRecoveryVersion','1')");
+db.close();
+const port=await new Promise(resolve=>{const server=net.createServer();server.listen(0,'127.0.0.1',()=>{const port=server.address().port;server.close(()=>resolve(port));});});
+const child=spawn('node_modules/electron/dist/electron.exe',['.'],{env:{...process.env,SANDALA_USER_DATA_PATH:root,ELECTRON_REMOTE_DEBUGGING_PORT:String(port)},windowsHide:true,stdio:['ignore','ignore','inherit']});
+let socket;
+try {
+ let page;
+ for(let i=0;i<100&&!page;i++){
+  try{page=(await (await fetch('http://127.0.0.1:'+port+'/json/list')).json()).find(t=>t.type==='page'&&t.url.includes('index.html'));}catch{}
+  if(!page)await new Promise(r=>setTimeout(r,250));
+ }
+ if(!page)throw Error('Renderer not found');
+ socket=new WebSocket(page.webSocketDebuggerUrl);
+ await new Promise((ok,fail)=>{socket.addEventListener('open',ok,{once:true});socket.addEventListener('error',fail,{once:true});});
+ await new Promise(r=>setTimeout(r,1500));
+ let sequence=0;
+ const send=(method,params)=>new Promise((resolve,reject)=>{
+  const id=++sequence;
+  const timer=setTimeout(()=>{socket.removeEventListener('message',onMessage);reject(Error('CDP timeout'));},45000);
+  const onMessage=event=>{const data=JSON.parse(event.data);if(data.id===id){clearTimeout(timer);socket.removeEventListener('message',onMessage);if(data.error)reject(Error(JSON.stringify(data.error)));else resolve(data.result);}};
+  socket.addEventListener('message',onMessage);socket.send(JSON.stringify({id,method,params}));
+ });
+
+ const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description??r.exceptionDetails.text);return r.result.value;};
+ const waitFor=async expression=>{for(let i=0;i<120;i++){if(await evaluate('Boolean('+expression+')'))return;await new Promise(r=>setTimeout(r,80));}throw Error('Timed out: '+expression);};
+ const select=async(name,value)=>{await evaluate(`(()=>{const el=document.querySelector('select[name="'+${JSON.stringify(name)}+'"]');el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('change',{bubbles:true}));})()`);};
+ const errors=[];
+ socket.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);});
+ await send('Runtime.enable',{});
+ await evaluate("location.hash='/pricing'");
+ await waitFor("document.querySelector('select[name=pricingMainCategory]')");
+ if(await evaluate("Boolean(document.querySelector('.pricing-service-overview'))"))throw Error('Item automatically selected before choosing categories');
+ if(!await evaluate("document.querySelector('select[name=pricingSecondaryCategory]').disabled && document.querySelector('select[name=pricingItem]').disabled"))throw Error('Dependent controls are not disabled');
+ const product=await evaluate("(async()=> (await window.desktopApi.catalog.listServices()).find(x=>x.id==='ghassan-product-067'))()");
+ await select('pricingMainCategory','sheet-main-1');
+ await waitFor('document.querySelector('+JSON.stringify('select[name=pricingSecondaryCategory] option[value="'+product.categoryId+'"]')+')');
+ await select('pricingSecondaryCategory',product.categoryId);
+ await waitFor('document.querySelector('+JSON.stringify('select[name=pricingItem] option[value="'+product.id+'"]')+')');
+ const itemIds=await evaluate("[...document.querySelector('select[name=pricingItem]').options].map(x=>x.value).filter(Boolean)");
+ const allowed=await evaluate("(async()=> (await window.desktopApi.catalog.listServices()).filter(x=>x.itemType==='PRODUCT'&&x.categoryId==='"+product.categoryId+"').map(x=>x.id))()");
+ if(itemIds.some(id=>!allowed.includes(id)))throw Error('Items from another secondary category leaked');
+ await select('pricingItem',product.id);
+ await waitFor("document.querySelector('.product-price-summary')");
+ const params=await evaluate("location.hash");
+ await evaluate("[...document.querySelectorAll('.product-price-editor button')].find(x=>x.textContent.includes('تعديل الأسعار')).click()");
+ await waitFor("document.querySelector('input[name=offerPrice]')");
+ await evaluate("(()=>{const input=document.querySelector('input[name=offerPrice]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'37');input.dispatchEvent(new Event('input',{bubbles:true}));})()");
+ await evaluate("document.querySelector('.modal form').requestSubmit()");
+ await waitFor("!document.querySelector('.modal')");
+ await waitFor("document.querySelector('.product-price-summary').innerText.includes('37')");
+ if(await evaluate("location.hash")!==params)throw Error('Saving changed hierarchy selections');
+ await select('pricingMainCategory','sheet-main-2');
+ await waitFor("document.querySelector('select[name=pricingSecondaryCategory]').value!==''");
+ if(await evaluate("Boolean(document.querySelector('.product-price-summary')) || document.querySelector('select[name=pricingItem]').value!==''"))throw Error('Parent change retained previous product');
+ await evaluate("location.hash='/pricing?service=ghassan-product-067'");
+ await waitFor("document.querySelector('select[name=pricingItem]').value==='ghassan-product-067'");
+ if(await evaluate("document.querySelector('select[name=pricingMainCategory]').value")!=='sheet-main-1')throw Error('Deep link did not restore main category');
+ await new Promise(r=>setTimeout(r,400));
+ const shot=await send('Page.captureScreenshot',{format:'png'});
+ const shotPath=join(root,'pricing-hierarchy.png');writeFileSync(shotPath,Buffer.from(shot.data,'base64'));console.log('SCREENSHOT='+shotPath);
+ await evaluate("location.hash='/pricing?type=PRODUCT&main=sheet-main-2&service=ghassan-product-067'");
+ await waitFor("document.querySelector('select[name=pricingMainCategory]').value==='sheet-main-2'");
+ if(await evaluate("Boolean(document.querySelector('.pricing-service-overview'))"))throw Error('Mismatched deep link showed wrong price editor');
+ await evaluate("[...document.querySelectorAll('[aria-label=\"نوع الصنف للتسعير\"] button')].find(x=>x.textContent==='الخدمات').click()");
+ await waitFor("document.querySelector('[aria-label=\"نوع الصنف للتسعير\"] button[aria-pressed=true]').textContent==='الخدمات'");
+ if(await evaluate("[...document.querySelector('select[name=pricingMainCategory]').options].some(x=>x.value.startsWith('sheet-main-'))"))throw Error('Product categories leaked into services');
+ const main=await evaluate("document.querySelector('select[name=pricingMainCategory] option:not([value=\"\"])').value");
+ await select('pricingMainCategory',main);
+ await waitFor("!document.querySelector('select[name=pricingSecondaryCategory]').disabled");
+ const secondary=await evaluate("document.querySelector('select[name=pricingSecondaryCategory] option:not([value=\"\"])').value");
+ await select('pricingSecondaryCategory',secondary);
+ await waitFor("document.querySelector('select[name=pricingItem] option:not([value=\"\"])')");
+ const service=await evaluate("document.querySelector('select[name=pricingItem] option:not([value=\"\"])').value");
+ await select('pricingItem',service);
+ await waitFor("document.querySelector('.pricing-rule-editor')");
+ const before=await evaluate("location.hash");
+ await evaluate("document.querySelector('.cost-editor button').click()");
+ await waitFor("!document.querySelector('.cost-editor button').disabled");
+ if(await evaluate("location.hash")!==before)throw Error('Cost save reset selections');
+ if(await evaluate("document.documentElement.scrollWidth>innerWidth"))throw Error('Horizontal overflow');
+ if(errors.length)throw Error(errors.join('\n'));
+ console.log('PASS: main/secondary/item filtering, type separation, save preservation, direct links, automatic single choice and no renderer exceptions');
+}finally{socket?.close();child.kill();}
+

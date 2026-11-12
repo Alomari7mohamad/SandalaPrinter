@@ -1,5 +1,5 @@
 import { useConfirm } from '../components/ConfirmationProvider'
-import { AlertTriangle, Calculator, CircleDollarSign, Edit3, Eye, EyeOff, Layers3, Plus, Save, Search, Trash2 } from 'lucide-react'
+import { AlertTriangle, Calculator, CircleDollarSign, Edit3, Eye, EyeOff, Layers3, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { ServiceCategoryDto, ServiceDto, ServiceInput } from '../../../shared/contracts'
@@ -9,13 +9,13 @@ import { ServiceDialog } from '../components/ServiceDialog'
 import { RuleDialog } from '../components/RuleDialog'
 import { getArabicError } from '../utils/errors'
 import { formatCurrency } from '../utils/format'
+import { catalogBranches } from '../../../shared/catalog-hierarchy'
 
 const ruleNames: Record<PriceRule['ruleType'], string> = { EXACT_QUANTITY: 'كمية محددة', MIN_QUANTITY: 'حد أدنى', QUANTITY_TIER: 'نطاق كمية', UNIT_PRICE: 'سعر للوحدة', BULK_PRICE: 'سعر دفعة', FIXED_PRICE: 'سعر ثابت' }
 const quantityLabel = (rule: PriceRule) => rule.exactQuantity !== null ? String(rule.exactQuantity) : rule.minQuantity !== null && rule.maxQuantity !== null ? `${rule.minQuantity} – ${rule.maxQuantity}` : rule.minQuantity !== null ? `${rule.minQuantity} فأكثر` : rule.maxQuantity !== null ? `حتى ${rule.maxQuantity}` : 'كل الكميات'
 const priceLabel = (rule: PriceRule) => rule.unitPrice !== null ? `${rule.unitPrice} ₪ / وحدة` : `${rule.fixedPrice ?? 0} ₪`
 const money = (value: number | null) => value === null ? 'غير محدد' : formatCurrency(value, 4)
 const serviceInput = (service: ServiceDto, cost: number | null): ServiceInput => ({ id: service.id, code: service.code, nameAr: service.nameAr, nameHe: service.nameHe, categoryId: service.categoryId, paperType: service.paperType, size: service.size, colorMode: service.colorMode, coverage: service.coverage, unit: service.unit, itemType: service.itemType, supplierId: null, reorderPoint: service.reorderPoint, minimumOrderQuantity: service.minimumOrderQuantity, costType: 'PER_UNIT', unitCost: cost, costBatchSize: null, active: service.active, notes: service.notes })
-const categoryKey = (service: ServiceDto) => service.categoryId ?? '__uncategorized__'
 
 export function PricingPage() {
   const confirm = useConfirm()
@@ -28,37 +28,52 @@ export function PricingPage() {
   const [error, setError] = useState('')
   const [editingRule, setEditingRule] = useState<PriceRule | 'new' | null>(null)
   const [quantity, setQuantity] = useState('100')
-  const [serviceSearch, setServiceSearch] = useState('')
   const [showCalculationDetails, setShowCalculationDetails] = useState(false)
   const [result, setResult] = useState<PricingResult | null>(null)
   const [calculating, setCalculating] = useState(false)
-  const selectedId = params.get('service') ?? services[0]?.id ?? ''
-  const selected = useMemo(() => services.find((service) => service.id === selectedId), [services, selectedId])
-  const serviceGroups = useMemo(() => {
-    const groups = new Map<string, { key: string; label: string; services: ServiceDto[] }>()
-    services.forEach((service) => {
-      const key = categoryKey(service)
-      const group = groups.get(key) ?? { key, label: service.categoryName || 'بدون فئة', services: [] }
-      group.services.push(service)
-      groups.set(key, group)
-    })
-    return [...groups.values()].map((group) => ({ ...group, services: group.services.sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar')) }))
-  }, [services])
-  const selectedCategoryKey = selected ? categoryKey(selected) : serviceGroups[0]?.key ?? ''
-  const categoryServices = serviceGroups.find((group) => group.key === selectedCategoryKey)?.services ?? []
-  const visibleCategoryServices = useMemo(() => {
-    const query = serviceSearch.trim().toLocaleLowerCase('ar')
-    if (!query) return categoryServices
-    return categoryServices.filter((service) => `${service.nameAr} ${service.nameHe ?? ''} ${service.code ?? ''}`.toLocaleLowerCase('ar').includes(query))
-  }, [categoryServices, serviceSearch])
+  const requested = services.find((service) => service.id === params.get('service'))
+  const itemType = params.get('type') === 'SERVICE' ? 'SERVICE' : params.get('type') === 'PRODUCT' ? 'PRODUCT' : requested?.itemType ?? 'PRODUCT'
+  const branches = useMemo(() => catalogBranches(categories, services, itemType), [categories, services, itemType])
+  const linkedBranch = branches.find((branch) => branch.children.some((child) => child.items.some((item) => item.id === requested?.id)))
+  const mainId = params.get('main') ?? linkedBranch?.id ?? ''
+  const branch = branches.find((group) => group.id === mainId)
+  const secondaryId = params.get('secondary') ?? branch?.children.find((child) => child.items.some((item) => item.id === requested?.id))?.id ?? ''
+  const secondary = branch?.children.find((child) => child.id === secondaryId)
+  const selected = secondary?.items.find((item) => item.id === requested?.id)
+  const selectedId = selected?.id ?? ''
+  const itemLabel = itemType === 'PRODUCT' ? 'المنتج' : 'الخدمة'
+  const changeSelection = (next: Record<string, string>) => {
+    setEditingRule(null); setEditingProduct(false); setResult(null); setRules([]); setError('')
+    setParams(next)
+  }
+  const chooseMain = (id: string) => {
+    const next: Record<string, string> = { type: itemType, main: id }
+    const children = branches.find((group) => group.id === id)?.children ?? []
+    if (children.length === 1) {
+      next.secondary = children[0]!.id
+      if (children[0]!.items.length === 1) next.service = children[0]!.items[0]!.id
+    }
+    changeSelection(next)
+  }
+  const chooseSecondary = (id: string) => {
+    const next: Record<string, string> = { type: itemType, main: mainId, secondary: id }
+    const items = branch?.children.find((child) => child.id === id)?.items ?? []
+    if (items.length === 1) next.service = items[0]!.id
+    changeSelection(next)
+  }
   const [cost, setCost] = useState<number | null>(null)
   const [savingCost, setSavingCost] = useState(false)
 
-  const loadServices = () => Promise.all([window.desktopApi.catalog.listServices(), window.desktopApi.catalog.listCategories()]).then(([rows, groups]) => { setCategories(groups); const activeRows = rows.filter((service) => service.active); setServices(activeRows); if (!params.get('service') && activeRows[0]) setParams({ service: activeRows[0].id }, { replace: true }) }).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل الخدمات.'))).finally(() => setLoading(false))
+  const loadServices = () => Promise.all([window.desktopApi.catalog.listServices(), window.desktopApi.catalog.listCategories()]).then(([rows, groups]) => { setCategories(groups); setServices(rows.filter((service) => service.active)) }).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل المنتجات والخدمات.'))).finally(() => setLoading(false))
   useEffect(() => {
     void loadServices()
   }, [])
-  useEffect(() => { if (!selectedId) return; setResult(null); window.desktopApi.pricing.listRules(selectedId).then(setRules).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل قواعد التسعير.'))) }, [selectedId])
+  useEffect(() => {
+    let cancelled = false
+    setRules([]); setResult(null)
+    if (selectedId) window.desktopApi.pricing.listRules(selectedId).then((rows) => { if (!cancelled) setRules(rows) }).catch((cause) => { if (!cancelled) setError(getArabicError(cause, 'تعذر تحميل قواعد التسعير.')) })
+    return () => { cancelled = true }
+  }, [selectedId])
   useEffect(() => { setCost(selected?.unitCost ?? null) }, [selected])
   useEffect(() => {
     const amount = Number(quantity)
@@ -83,15 +98,21 @@ export function PricingPage() {
   return <div className="page pricing-page">
     <PageHeader title="الأسعار" subtitle="عدّل التكلفة وقواعد البيع واختبر أي كمية مباشرة" />
     {error && <div className="alert error">{error}</div>}
-    {services.length === 0 ? <div className="panel table-state">لا توجد خدمات. أضف خدمة أولًا.</div> : <>
+    {services.length === 0 ? <div className="panel table-state">لا توجد منتجات أو خدمات. أضف منتجًا أو خدمة أولًا.</div> : <>
       <section className="panel pricing-selector-panel">
-        <div className="pricing-selector-heading"><span><Layers3 size={20} /></span><div><h2>حدد المنتج أو الخدمة للتسعير</h2><p>اختر التصنيف أولًا، ثم ابحث عن المنتج أو الخدمة.</p></div></div>
-        <div className="pricing-selector-fields">
-          <label><span><b>1</b> الفئة</span><select value={selectedCategoryKey} onChange={(event) => { setServiceSearch(''); const firstService = serviceGroups.find((group) => group.key === event.target.value)?.services[0]; if (firstService) setParams({ service: firstService.id }) }}>{serviceGroups.map((group) => <option key={group.key} value={group.key}>{group.label}</option>)}</select></label>
-          <label className="pricing-service-search"><span><Search size={15} /> بحث داخل الفئة</span><div><Search size={17} /><input value={serviceSearch} onChange={(event) => setServiceSearch(event.target.value)} placeholder="اكتب اسم الخدمة..." /></div></label>
-          <label><span><b>2</b> الخدمة</span><select value={selectedId} onChange={(event) => setParams({ service: event.target.value })}>{visibleCategoryServices.length === 0 && <option value={selectedId}>لا توجد نتائج مطابقة</option>}{visibleCategoryServices.map((service) => <option key={service.id} value={service.id}>{service.nameAr}</option>)}</select></label>
+        <div className="pricing-selector-heading"><span><Layers3 size={20} /></span><div><h2>حدد المنتج أو الخدمة للتسعير</h2><p>اختر الفئة الرئيسية، ثم الثانوية، ثم الصنف لتحديد أسعاره.</p></div></div>
+        <div className="category-type-tabs" role="group" aria-label="نوع الصنف للتسعير">
+          <button type="button" className={itemType === 'PRODUCT' ? 'active' : ''} aria-pressed={itemType === 'PRODUCT'} onClick={() => { if (itemType !== 'PRODUCT') changeSelection({ type: 'PRODUCT' }) }}>المنتجات</button>
+          <button type="button" className={itemType === 'SERVICE' ? 'active' : ''} aria-pressed={itemType === 'SERVICE'} onClick={() => { if (itemType !== 'SERVICE') changeSelection({ type: 'SERVICE' }) }}>الخدمات</button>
         </div>
+        <div className="pricing-selector-fields">
+          <label><span><b>1</b> الفئة الرئيسية</span><select name="pricingMainCategory" value={branch?.id ?? ''} onChange={(event) => chooseMain(event.target.value)}><option value="" disabled hidden>اختر الفئة الرئيسية</option>{branches.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
+          <label><span><b>2</b> الفئة الثانوية</span><select name="pricingSecondaryCategory" disabled={!branch} value={secondary?.id ?? ''} onChange={(event) => chooseSecondary(event.target.value)}><option value="" disabled hidden>اختر الفئة الثانوية</option>{branch?.children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label>
+          <label><span><b>3</b> {itemLabel}</span><select name="pricingItem" disabled={!secondary} value={selectedId} onChange={(event) => changeSelection({ type: itemType, main: mainId, secondary: secondaryId, service: event.target.value })}><option value="" disabled hidden>اختر {itemLabel}</option>{secondary?.items.map((item) => <option key={item.id} value={item.id}>{item.nameAr}</option>)}</select></label>
+        </div>
+        {branches.length === 0 && <p className="table-state">لا توجد {itemType === 'PRODUCT' ? 'منتجات' : 'خدمات'} نشطة للتسعير.</p>}
       </section>
+      {!selected && branches.length > 0 && <div className="panel table-state">اختر الفئة الرئيسية والثانوية ثم {itemLabel} لعرض الأسعار وتعديلها.</div>}
       {selected && <>
         <section className="panel pricing-service-overview">
           <div className="pricing-service-identity"><span className="pricing-service-icon"><CircleDollarSign size={24} /></span><div><span className="eyebrow">الخدمة المحددة</span><h2>{selected.nameAr}</h2><p>{[selected.categoryName, selected.itemType === 'SERVICE' ? selected.paperType : null, selected.size, selected.colorMode].filter(Boolean).join(' • ') || 'لا توجد مواصفات إضافية'}</p></div></div>
