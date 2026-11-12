@@ -94,7 +94,7 @@ export function PricingPage() {
       </section>
       {selected && <>
         <section className="panel pricing-service-overview">
-          <div className="pricing-service-identity"><span className="pricing-service-icon"><CircleDollarSign size={24} /></span><div><span className="eyebrow">الخدمة المحددة</span><h2>{selected.nameAr}</h2><p>{[selected.categoryName, selected.paperType, selected.size, selected.colorMode, selected.coverage].filter(Boolean).join(' • ') || 'لا توجد مواصفات إضافية'}</p></div></div>
+          <div className="pricing-service-identity"><span className="pricing-service-icon"><CircleDollarSign size={24} /></span><div><span className="eyebrow">الخدمة المحددة</span><h2>{selected.nameAr}</h2><p>{[selected.categoryName, selected.itemType === 'SERVICE' ? selected.paperType : null, selected.size, selected.colorMode].filter(Boolean).join(' • ') || 'لا توجد مواصفات إضافية'}</p></div></div>
           <div className="pricing-service-stats"><div><span>عدد الشرائح</span><b>{rules.length}</b></div><div><span>وحدة البيع</span><b>{selected.unit || 'وحدة'}</b></div></div>
           <div className="cost-editor"><label>تكلفة الوحدة<input type="number" min="0" step="0.001" value={cost ?? ''} onChange={(e) => setCost(e.target.value === '' ? null : Number(e.target.value))} /></label><button className="primary-button" disabled={savingCost} onClick={() => void saveCost()}><Save size={17} /> {savingCost ? 'جارٍ الحفظ' : 'حفظ التكلفة'}</button></div>
         </section>

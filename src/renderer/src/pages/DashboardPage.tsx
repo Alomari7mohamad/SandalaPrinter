@@ -23,9 +23,9 @@ export function DashboardPage() {
 
   useEffect(() => {
 
-    window.desktopApi.dashboard.getStats().then(setStats).catch(() => setError('تعذر تحميل بيانات لوحة التحكم.'))
-    window.desktopApi.reports.get(currentMonthRange()).then(setMonthReport).catch(() => setError('تعذر تحميل مبيعات الشهر الحالي.'))
-    window.desktopApi.reports.get(lastDaysRange(7)).then(setWeekReport).catch(() => setError('تعذر تحميل مقارنة الأيام.'))
+    window.desktopApi.dashboard.getStats().then(setStats).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل بيانات لوحة التحكم.')))
+    window.desktopApi.reports.get(currentMonthRange()).then(setMonthReport).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل مبيعات الشهر الحالي.')))
+    window.desktopApi.reports.get(lastDaysRange(7)).then(setWeekReport).catch((cause) => setError(getArabicError(cause, 'تعذر تحميل مقارنة الأيام.')))
 
 
 
@@ -59,3 +59,4 @@ export function DashboardPage() {
     </div>
   )
 }
+import { getArabicError } from '../utils/errors'

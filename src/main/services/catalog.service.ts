@@ -4,6 +4,7 @@ import { calculatePrice } from '../../shared/pricing/pricing-engine'
 import { rangesOverlap, ruleSpecificity } from '../../shared/pricing/pricing-utils'
 import type { MaterialRequirementInput, PricingRuleInput, ServiceCategoryInput, ServiceInput } from '../../shared/contracts'
 import * as repository from '../database/catalog.repository'
+import { catalogValidationError } from './catalog-validation'
 
 const nullableText = z.string().trim().max(250).nullable()
 const categorySchema = z.object({ id: z.string().min(2).max(100).optional(), nameAr: z.string().trim().min(2, 'اسم التصنيف قصير جدًا.').max(100), itemType: z.enum(['PRODUCT', 'SERVICE']).optional(), parentId: z.string().min(2).nullable().optional() })
@@ -31,7 +32,7 @@ const ruleSchema = z.object({
 })
 const materialRequirementSchema=z.array(z.object({inventoryItemId:z.string().min(2).max(100),quantityPerUnit:z.number().positive().finite()})).max(100)
 
-function validationError(error: z.ZodError): Error { return new Error(error.issues[0]?.message ?? 'البيانات المدخلة غير صحيحة.') }
+const validationError = catalogValidationError
 
 export const catalogService = {
   listCategories: repository.listCategories,

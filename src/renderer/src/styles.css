@@ -624,3 +624,4 @@ select option { color: #18394a; background: #fff; font-weight: 650; }
 .product-effective-price { display:flex; justify-content:space-between; padding:16px; border:1px solid #7fafe8; border-radius:10px; background:#edf6ff; }
 @media(max-width:1180px) { .new-order-page .service-hierarchy-grid,.catalog-items-page .filters-bar { grid-template-columns:repeat(2,minmax(0,1fr)); } .new-order-page .service-hierarchy-grid label:nth-child(n) { grid-column:span 1; } .new-order-page .service-hierarchy-grid label:nth-child(4) { grid-column:1 / -1; } }
 @media(max-width:760px) { .new-order-page .service-hierarchy-grid,.product-price-summary,.catalog-items-page .filters-bar { grid-template-columns:1fr; } .new-order-page .service-hierarchy-grid label:nth-child(n) { grid-column:1; } .category-tree-table th:last-child { width:160px; } .category-tree-table .page-header-actions { flex-wrap:wrap; } }
+.alert.error { white-space: pre-wrap; overflow-wrap: anywhere; }

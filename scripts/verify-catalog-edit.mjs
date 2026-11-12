@@ -50,18 +50,32 @@ try {
  for(const [path,title,kind] of [['/products','المنتجات','PRODUCT'],['/services','الخدمات','SERVICE']]){
   await nav(path,title);
   const id=await evaluate(`(async()=>{const rows=await window.desktopApi.catalog.listServices();const name=document.querySelector('tbody tr td b').textContent;return rows.find(x=>x.itemType===${JSON.stringify(kind)}&&x.nameAr===name).id})()`);
+  const original=await evaluate(`(async()=>{const row=(await window.desktopApi.catalog.listServices()).find(x=>x.id===${JSON.stringify(id)});return {code:row.code,notes:row.notes,coverage:row.coverage,paperType:row.paperType}})()`);
   await click('tbody tr button[title="تعديل"]');
   await waitFor("document.querySelector('.modal input')");
   await waitFor("document.activeElement===document.querySelector('.modal input')");
+  const labels=await evaluate("[...document.querySelectorAll('.modal label')].map(x=>x.firstChild.textContent.trim())");
+  if(labels.includes('التغطية/التفصيل')||labels.includes('ملاحظات')||labels.includes('نوع الورق')!==(kind==='SERVICE'))throw Error('Unexpected catalog fields: '+JSON.stringify(labels));
   const changed=kind+' تجربة تعديل';
   await type('.modal input',changed);
   await type('.modal input[dir="rtl"][placeholder="اختياري"]','בדיקת עריכה');
-  await type('.modal textarea','ملاحظات الكتابة والحفظ');
-  console.log('Before save', await evaluate(`JSON.stringify({invalid:[...document.querySelectorAll('.modal :invalid')].map(x=>({name:x.name,value:x.value,label:x.closest('label')?.textContent})),error:document.querySelector('.modal .alert')?.textContent})`));
+  await type('.modal input[dir="ltr"]','');
+  await click('.modal .primary-button');
+  await waitFor("document.querySelector('.modal [role=alert]')?.textContent.includes('الرمز') && document.querySelector('.modal [role=alert]')?.textContent.includes('تفاصيل الخطأ:')");
+  await type('.modal input[dir="ltr"]','A');
+  await click('.modal .primary-button');
+  await waitFor("document.querySelector('.modal [role=alert]')?.textContent.includes('تفاصيل الخطأ:') && document.querySelector('.modal [role=alert]')?.textContent.includes('code')");
+  const failure=await evaluate("document.querySelector('.modal [role=alert]').textContent");
+  if(!failure.includes('الرمز')||!failure.includes('تعذر حفظ بيانات'))throw Error('Missing field/context in error: '+failure);
+  if(kind==='PRODUCT') {
+   const shot=await send('Page.captureScreenshot',{format:'png'});
+   const shotPath=join(root,'catalog-error.png');writeFileSync(shotPath,Buffer.from(shot.data,'base64'));console.log('SCREENSHOT='+shotPath);
+  }
+  await type('.modal input[dir="ltr"]',original.code);
   await click('.modal .primary-button');
   await waitFor("!document.querySelector('.modal')");
-  const saved=await evaluate(`(async()=>{const row=(await window.desktopApi.catalog.listServices()).find(x=>x.id===${JSON.stringify(id)});return {name:row.nameAr,he:row.nameHe,notes:row.notes}})()`);
-  if(saved.name!==changed||saved.he!=='בדיקת עריכה'||saved.notes!=='ملاحظات الكتابة والحفظ')throw Error('Edit not persisted '+JSON.stringify(saved));
+  const saved=await evaluate(`(async()=>{const row=(await window.desktopApi.catalog.listServices()).find(x=>x.id===${JSON.stringify(id)});return {name:row.nameAr,he:row.nameHe,notes:row.notes,coverage:row.coverage,paperType:row.paperType}})()`);
+  if(saved.name!==changed||saved.he!=='בדיקת עריכה'||saved.notes!==original.notes||saved.coverage!==original.coverage||saved.paperType!==original.paperType)throw Error('Edit not persisted or hidden data changed '+JSON.stringify(saved));
   // Dismiss an actual delete confirmation, then type again in the edit dialog.
   await click('tbody tr button.danger');
   await waitFor("document.querySelector('[aria-label=\"تأكيد العملية\"]')");
@@ -86,7 +100,7 @@ try {
   await click('.modal .danger-button');
   await waitFor("!document.querySelector('.modal')");
   if(await evaluate(`(async()=> (await window.desktopApi.catalog.listServices()).some(x=>x.id===${JSON.stringify(id)}))()`))throw Error('Confirmed deletion failed');
-  console.log(kind+': Arabic/Hebrew typing, notes, persistence, cancelled confirmation and repeated edit PASS');
+  console.log(kind+': simplified fields, detailed IPC validation error, preserved legacy data, typing, persistence and confirmations PASS');
  }
  if(nativeDialogs)throw Error('Native dialog regression');
  console.log('No native blocking dialogs; live data untouched. Synthetic database: '+root);
