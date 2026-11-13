@@ -13,9 +13,12 @@
     "native:node": "npm rebuild better-sqlite3",
     "native:electron": "electron-rebuild -f -w better-sqlite3",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "test": "npm run native:node && vitest run",
+    "test": "npm run native:node && vitest run src",
     "test:watch": "vitest",
     "electron:build": "npm run build && npm run native:electron && electron-builder --win nsis --config.npmRebuild=false && node scripts/generate-update-manifest.mjs",
+    "release": "node scripts/release.mjs",
+    "release:check": "node scripts/release.mjs --dry-run",
+    "release:test": "node --test scripts/release.test.mjs",
     "db:generate": "drizzle-kit generate",
     "postinstall": "electron-builder install-app-deps"
   },
