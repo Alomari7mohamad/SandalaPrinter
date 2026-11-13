@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { ARABIC_WITH_LATIN_DIGITS, formatCurrency, formatNumber } from './format'
+import { ARABIC_WITH_LATIN_DIGITS, formatCurrency, formatNumber, formatOrderTotal } from './format'
 
 describe('تنسيق الأرقام اللاتينية', () => {
+  it('يعرض الإجمالي الصحيح دون كسور ولا يغيّر إجمالي طلب قديم بالعرض', () => {
+    expect(formatOrderTotal(50)).toBe('50 ₪')
+    expect(formatOrderTotal(0)).toBe('0 ₪')
+    expect(formatOrderTotal(50.99)).toBe('50.99 ₪')
+  })
   it('يعرض 12345 بالأرقام الإنجليزية', () => {
     expect(formatNumber(12345)).toBe('12,345')
     expect(formatNumber(12345)).not.toMatch(/[٠-٩]/)

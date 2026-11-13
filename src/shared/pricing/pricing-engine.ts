@@ -30,13 +30,6 @@ export function calculatePrice(service: PriceableService, pricingRules: PriceRul
   }
 
   base.cost = calculateCost(service, quantity, warnings)
-  if (service.itemType === 'PRODUCT' && service.regularSalePrice != null) {
-    pricingRules = [{
-      id: `product-price-${service.id}`, serviceId: service.id, ruleType: 'UNIT_PRICE',
-      exactQuantity: null, minQuantity: 1, maxQuantity: null, fixedPrice: null,
-      unitPrice: service.offerSalePrice ?? service.regularSalePrice, priority: 10, active: true
-    }]
-  }
   let matches = pricingRules.filter((rule) => rule.serviceId === service.id && ruleMatches(rule, quantity))
     .sort((left, right) => ruleSpecificity(right) - ruleSpecificity(left) || right.priority - left.priority || left.id.localeCompare(right.id))
   let interpolatedExactRule = false

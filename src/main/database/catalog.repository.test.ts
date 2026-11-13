@@ -19,7 +19,8 @@ import hierarchyMigration from './migrations/0016_catalog_hierarchy.sql?raw'
 const databaseState = vi.hoisted(() => ({ current: undefined as unknown as Database.Database }))
 vi.mock('./client', () => ({ getSqlite: () => databaseState.current }))
 
-import { deleteCategory, deleteService, listServices, saveCategory, saveService } from './catalog.repository'
+import { deleteCategory, deleteService, listServices, saveCategory, saveService, listPricingRules } from './catalog.repository'
+import { catalogService } from '../services/catalog.service'
 
 function createDatabase(upgrade = true): Database.Database {
   const database = new Database(':memory:')
@@ -54,9 +55,37 @@ describe('إدارة التصنيفات', () => {
     const input = { code:'GIFT_PRICE',nameAr:'هدية',nameHe:null,categoryId:root.id,paperType:null,size:null,colorMode:null,coverage:null,unit:'قطعة',itemType:'PRODUCT' as const,supplierId:null,reorderPoint:1,minimumOrderQuantity:1,costType:'PER_UNIT' as const,unitCost:10,costBatchSize:null,active:true,notes:null,regularSalePrice:45,offerSalePrice:35 }
     const saved = saveService(input)
     expect(saved).toMatchObject({regularSalePrice:45,offerSalePrice:35,unitCost:10})
+    expect(listPricingRules(saved.id)).toMatchObject([{unitPrice:35,active:true}])
     expect(saveService({...input,id:saved.id,offerSalePrice:null})).toMatchObject({regularSalePrice:45,offerSalePrice:null})
     expect(() => saveService({...input,id:saved.id,regularSalePrice:null,offerSalePrice:20})).toThrow()
     expect(listServices().find((item) => item.id === saved.id)).toMatchObject({regularSalePrice:45,offerSalePrice:null})
+    expect(listPricingRules(saved.id)).toMatchObject([{unitPrice:45,active:true}])
+  })
+
+  it('يستخدم شرائح المنتجات ويعدلها ويحذفها دون الرجوع إلى سعر ثابت قديم', () => {
+    const root = saveCategory({ nameAr: 'منتجات شرائح', itemType: 'PRODUCT' })
+    const input = {code:'TIER_PRODUCT',nameAr:'منتج شرائح',nameHe:null,categoryId:root.id,paperType:null,size:null,colorMode:null,coverage:null,unit:'قطعة',itemType:'PRODUCT' as const,supplierId:null,reorderPoint:1,minimumOrderQuantity:1,costType:'PER_UNIT' as const,unitCost:2,costBatchSize:null,active:true,notes:null}
+    const product = saveService({...input,regularSalePrice:45,offerSalePrice:35})
+    const initial = listPricingRules(product.id)[0]!
+    expect(catalogService.calculate(product.id,3).salePrice).toBe(105)
+    catalogService.saveRule({...initial,minQuantity:1,maxQuantity:10,unitPrice:30})
+    const next = catalogService.saveRule({serviceId:product.id,ruleType:'MIN_QUANTITY',minQuantity:11,maxQuantity:null,unitPrice:25,fixedPrice:null,exactQuantity:null,priority:10,active:true})
+    expect(catalogService.calculate(product.id,10)).toMatchObject({salePrice:300,cost:20})
+    expect(catalogService.calculate(product.id,11)).toMatchObject({salePrice:275,cost:22})
+    expect(() => catalogService.saveRule({...initial,id:undefined,minQuantity:5,maxQuantity:15,unitPrice:20})).toThrow('تتعارض')
+    expect(() => catalogService.saveRule({...initial,id:undefined,ruleType:'MIN_QUANTITY',minQuantity:5,maxQuantity:null,unitPrice:20})).toThrow('تتعارض')
+    catalogService.setRuleActive(initial.id, false)
+    const replacement = catalogService.saveRule({...initial,id:undefined,minQuantity:1,maxQuantity:10,unitPrice:9})
+    expect(() => catalogService.setRuleActive(initial.id,true)).toThrow('تتعارض')
+    catalogService.deleteRule(replacement.id)
+    catalogService.setRuleActive(initial.id,true)
+    expect(() => saveService({...input,id:product.id,regularSalePrice:99,offerSalePrice:null})).toThrow('شرائح')
+    catalogService.deleteRule(initial.id)
+    expect(catalogService.calculate(product.id,1).requiresManualPricing).toBe(true)
+    catalogService.deleteRule(next.id)
+    saveService({...input,id:product.id,nameAr:'اسم معدل فقط'})
+    expect(listPricingRules(product.id)).toHaveLength(0)
+    expect(catalogService.calculate(product.id,11).requiresManualPricing).toBe(true)
   })
 
   it.each(['PRODUCT', 'SERVICE'] as const)('يحذف %s من الكتالوج مع إبقاء تفاصيل الطلب السابق', (itemType) => {

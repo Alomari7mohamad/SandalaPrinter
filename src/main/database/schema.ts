@@ -94,6 +94,7 @@ export const orders = sqliteTable('orders', {
   paidAmount: real('paid_amount').notNull().default(0),
   remainingAmount: real('remaining_amount').notNull().default(0),
   customerNameSnapshot: text('customer_name_snapshot').notNull().default('زبون عام'),
+  roundingDiscount: real('rounding_discount').notNull().default(0),
   customerPhoneSnapshot: text('customer_phone_snapshot'),
   deliveryAddress: text('delivery_address'),
   businessLogoDataUrl: text('business_logo_data_url'),

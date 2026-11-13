@@ -15,8 +15,10 @@ export function ServiceDialog({ service, itemType, pricingRules, categories, onC
   const editablePriceRule = editableUnitPriceRule(pricingRules)
   const hasComplexPricing = pricingRules.some((rule) => rule.active) && !editablePriceRule
   const [form, setForm] = useState<ServiceInput>(() => ({ ...toInput(service), itemType, categoryId: service?.categoryId ?? (categories.length === 1 ? categories[0]!.id : null) }))
-  const [salePrice, setSalePrice] = useState<number | null>(service?.regularSalePrice ?? editablePriceRule?.unitPrice ?? null)
-  const [offerPrice, setOfferPrice] = useState<number | null>(service?.offerSalePrice ?? null)
+  const sameProductPrice = Boolean(itemType === 'PRODUCT' && editablePriceRule && (service?.offerSalePrice ?? service?.regularSalePrice) === editablePriceRule.unitPrice)
+  const [salePrice, setSalePrice] = useState<number | null>(sameProductPrice ? service?.regularSalePrice ?? null : editablePriceRule?.unitPrice ?? null)
+  const [offerPrice, setOfferPrice] = useState<number | null>(sameProductPrice ? service?.offerSalePrice ?? null : null)
+  const [priceChanged, setPriceChanged] = useState(false)
   const [mainCategoryId, setMainCategoryId] = useState(() => {
     const current = categories.find((category) => category.id === service?.categoryId)
     return current?.parentId ?? current?.id ?? ''
@@ -30,7 +32,7 @@ export function ServiceDialog({ service, itemType, pricingRules, categories, onC
     event.preventDefault(); setError(''); setSaving(true)
     let failureContext = `تعذر حفظ بيانات ${itemLabel}.`
     try {
-      const saved = await window.desktopApi.catalog.saveService({ ...form, ...(itemType === 'PRODUCT' ? { regularSalePrice: salePrice, offerSalePrice: offerPrice } : {}), supplierId: null, costType: 'PER_UNIT', costBatchSize: null })
+      const saved = await window.desktopApi.catalog.saveService({ ...form, ...(itemType === 'PRODUCT' && !hasComplexPricing && (!service || priceChanged) ? { regularSalePrice: salePrice, offerSalePrice: offerPrice } : {}), supplierId: null, costType: 'PER_UNIT', costBatchSize: null })
       setForm((current) => ({ ...current, id: saved.id }))
       if (itemType === 'SERVICE' && !hasComplexPricing) {
         failureContext = 'تم حفظ بيانات الخدمة، لكن تعذر حفظ سعرها.'
@@ -62,10 +64,10 @@ export function ServiceDialog({ service, itemType, pricingRules, categories, onC
       <label>نوع الطباعة<input value={form.colorMode ?? ''} onChange={(e) => text('colorMode', e.target.value)} /></label>
       <label>الوحدة<input required value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} /></label>
       <label>تكلفة الوحدة<input type="number" min="0" step="0.001" value={form.unitCost ?? ''} onChange={(e) => setForm({ ...form, unitCost: e.target.value === '' ? null : Number(e.target.value) })} placeholder={`تكلفة ${form.unit || 'الوحدة'} الواحدة`} /></label>
-      {(itemType === 'PRODUCT' || !hasComplexPricing) && <label>سعر البيع للوحدة<input name="regularPrice" required={itemType === 'PRODUCT' && !service} type="number" min="0" step="0.001" value={salePrice ?? ''} onChange={(e) => setSalePrice(e.target.value === '' ? null : Number(e.target.value))} placeholder={itemType === 'PRODUCT' ? 'سعر البيع' : 'اختياري'} /></label>}
-      {itemType === 'PRODUCT' && <label>سعر العرض للوحدة<input type="number" name="offerPrice" min="0" step="any" value={offerPrice ?? ''} onChange={(event) => setOfferPrice(event.target.value === '' ? null : Number(event.target.value))} placeholder="اتركه فارغًا لاعتماد سعر البيع" /></label>}
-      {itemType === 'PRODUCT' && <output className="product-effective-price form-span">السعر المعتمد للطلب <b>{offerPrice ?? salePrice ?? 'غير محدد'} ₪</b></output>}
-      {itemType === 'SERVICE' && hasComplexPricing && <div className="complex-pricing-note form-span"><div><b>تختلف أسعار البيع حسب الكمية.</b><span>تظهر أسعار البيع في صفحة الأسعار ويجب تعديلها من هناك حتى تبقى قواعد الكميات صحيحة.</span></div><button type="button" onClick={() => { onClose(); navigate(`/pricing?service=${service?.id}`) }}>فتح صفحة الأسعار</button></div>}
+      {(!hasComplexPricing) && <label>سعر البيع للوحدة<input name="regularPrice" required={itemType === 'PRODUCT' && !service} type="number" min="0" step="0.001" value={salePrice ?? ''} onChange={(e) => { setSalePrice(e.target.value === '' ? null : Number(e.target.value)); setPriceChanged(true) }} placeholder={itemType === 'PRODUCT' ? 'سعر البيع' : 'اختياري'} /></label>}
+      {itemType === 'PRODUCT' && !hasComplexPricing && <label>سعر العرض للوحدة<input type="number" name="offerPrice" min="0" step="any" value={offerPrice ?? ''} onChange={(event) => { setOfferPrice(event.target.value === '' ? null : Number(event.target.value)); setPriceChanged(true) }} placeholder="اتركه فارغًا لاعتماد سعر البيع" /></label>}
+      {itemType === 'PRODUCT' && !hasComplexPricing && <output className="product-effective-price form-span">السعر المعتمد للطلب <b>{offerPrice ?? salePrice ?? 'غير محدد'} ₪</b></output>}
+      {hasComplexPricing && <div className="complex-pricing-note form-span"><div><b>تختلف أسعار البيع حسب الكمية.</b><span>تظهر أسعار البيع في صفحة الأسعار ويجب تعديلها من هناك حتى تبقى قواعد الكميات صحيحة.</span></div><button type="button" onClick={() => { onClose(); navigate(`/pricing?service=${service?.id}`) }}>فتح صفحة الأسعار</button></div>}
       <label className="checkbox-label form-span"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> العنصر نشط</label>
       <div className="dialog-actions form-span"><button type="button" className="secondary-button" onClick={onClose}>إلغاء</button><button className="primary-button" disabled={saving}>{saving ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}</button></div>
     </form>

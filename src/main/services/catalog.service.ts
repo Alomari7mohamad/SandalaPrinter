@@ -34,6 +34,15 @@ const materialRequirementSchema=z.array(z.object({inventoryItemId:z.string().min
 
 const validationError = catalogValidationError
 
+function conflictingRule(candidate: PriceRule, ignoredId?: string): PriceRule | undefined {
+  const isProduct = repository.getService(candidate.serviceId)?.itemType === 'PRODUCT'
+  const ranges = ['UNIT_PRICE', 'MIN_QUANTITY', 'QUANTITY_TIER']
+  return repository.listPricingRules(candidate.serviceId).find((rule) => {
+    const productUnitRanges = isProduct && ranges.includes(rule.ruleType) && ranges.includes(candidate.ruleType) && rule.unitPrice !== null && candidate.unitPrice !== null
+    return rule.id !== ignoredId && rangesOverlap(rule, candidate) && (productUnitRanges || ruleSpecificity(rule) === ruleSpecificity(candidate))
+  })
+}
+
 export const catalogService = {
   listCategories: repository.listCategories,
   saveCategory(input: ServiceCategoryInput) {
@@ -72,7 +81,7 @@ export const catalogService = {
     const parsed = ruleSchema.safeParse(input)
     if (!parsed.success) throw validationError(parsed.error)
     const candidate = { id: parsed.data.id ?? 'new-rule', ...parsed.data } as PriceRule
-    const conflict = repository.listPricingRules(parsed.data.serviceId).find((rule) => rule.id !== parsed.data.id && ruleSpecificity(rule) === ruleSpecificity(candidate) && rangesOverlap(rule, candidate))
+    const conflict = conflictingRule(candidate, parsed.data.id)
     if (candidate.active && conflict) throw new Error('تتعارض هذه القاعدة مع قاعدة نشطة موجودة لنفس نطاق الكمية.')
     return repository.savePricingRule(parsed.data)
   },
@@ -80,7 +89,7 @@ export const catalogService = {
     if (active) {
       const candidate = repository.getPricingRule(id)
       if (!candidate) throw new Error('قاعدة السعر المطلوبة غير موجودة.')
-      const conflict = repository.listPricingRules(candidate.serviceId).find((rule) => rule.id !== id && rule.active && ruleSpecificity(rule) === ruleSpecificity(candidate) && rangesOverlap(rule, candidate))
+      const conflict = conflictingRule({ ...candidate, active: true }, id)
       if (conflict) throw new Error('لا يمكن تفعيل القاعدة لأنها تتعارض مع قاعدة نشطة.')
     }
     repository.setPricingRuleActive(id, active)

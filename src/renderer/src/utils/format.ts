@@ -11,3 +11,9 @@ export function formatCurrency(value: number, maximumFractionDigits = 2): string
   const safeMaximum = Math.min(20, Math.max(0, Math.trunc(maximumFractionDigits)))
   return `${formatNumber(value, Math.min(2, safeMaximum), safeMaximum)} ₪`
 }
+
+// New orders have integral payable totals. Preserve decimal amounts on older
+// orders rather than visually changing an amount that was already saved/paid.
+export function formatOrderTotal(value: number): string {
+  return formatCurrency(value, Number.isInteger(value) ? 0 : 4)
+}

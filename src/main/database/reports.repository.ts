@@ -72,16 +72,16 @@ export function getBusinessReport(range: ReportRangeInput): BusinessReportDto {
   `).all(range.from, range.to) as PeriodExpenseRow[]
   const services = database.prepare(`
     SELECT oi.service_name_snapshot serviceName, oi.category_snapshot categoryName,
-      COALESCE(SUM(oi.quantity), 0) quantity, COALESCE(SUM(oi.total_sale_price), 0) sales,
-      COALESCE(SUM(oi.total_cost), 0) cost, COALESCE(SUM(oi.profit), 0) profit
+      COALESCE(SUM(oi.quantity), 0) quantity, COALESCE(SUM(oi.total_sale_price * CASE WHEN o.subtotal > 0 THEN o.total / o.subtotal ELSE 1 END), 0) sales,
+      COALESCE(SUM(oi.total_cost), 0) cost, COALESCE(SUM((oi.total_sale_price * CASE WHEN o.subtotal > 0 THEN o.total / o.subtotal ELSE 1 END) - oi.total_cost), 0) profit
     FROM order_items oi JOIN orders o ON o.id = oi.order_id
     WHERE date(o.paid_at, 'localtime') BETWEEN date(?) AND date(?) AND o.status != 'CANCELLED' AND o.payment_status = 'PAID'
     GROUP BY oi.service_name_snapshot, oi.category_snapshot ORDER BY sales DESC, serviceName
   `).all(range.from, range.to) as ReportServiceRowDto[]
   const orderedServices = database.prepare(`
     SELECT oi.service_name_snapshot serviceName, oi.category_snapshot categoryName,
-      COALESCE(SUM(oi.quantity), 0) quantity, COALESCE(SUM(oi.total_sale_price), 0) sales,
-      COALESCE(SUM(oi.total_cost), 0) cost, COALESCE(SUM(oi.profit), 0) profit
+      COALESCE(SUM(oi.quantity), 0) quantity, COALESCE(SUM(oi.total_sale_price * CASE WHEN o.subtotal > 0 THEN o.total / o.subtotal ELSE 1 END), 0) sales,
+      COALESCE(SUM(oi.total_cost), 0) cost, COALESCE(SUM((oi.total_sale_price * CASE WHEN o.subtotal > 0 THEN o.total / o.subtotal ELSE 1 END) - oi.total_cost), 0) profit
     FROM order_items oi JOIN orders o ON o.id = oi.order_id
     WHERE date(o.ordered_at, 'localtime') BETWEEN date(?) AND date(?) AND o.status != 'CANCELLED'
     GROUP BY oi.service_name_snapshot, oi.category_snapshot ORDER BY quantity DESC, sales DESC, serviceName

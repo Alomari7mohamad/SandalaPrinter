@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { catalogBranches } from './catalog-hierarchy'
 import type { ServiceCategoryDto, ServiceDto } from './contracts'
 import { calculatePrice } from './pricing/pricing-engine'
+import type { PriceRule } from './pricing/pricing-types'
 
 describe('catalog filtering and offer pricing', () => {
   it('يفصل المنتجات والخدمات في كل مستويات الاختيار', () => {
@@ -23,6 +24,8 @@ describe('catalog filtering and offer pricing', () => {
 
   it.each([[35,105],[0,0],[null,135]])('يعتمد سعر العرض %s وإلا سعر البيع', (offerSalePrice,total) => {
     const item = {id:'gift',code:'GIFT',nameAr:'هدية',active:true,costType:'PER_UNIT' as const,unitCost:10,costBatchSize:null,itemType:'PRODUCT' as const,regularSalePrice:45,offerSalePrice}
-    expect(calculatePrice(item,[],3)).toMatchObject({salePrice:total,cost:30,requiresManualPricing:false})
+    const rules: PriceRule[] = [{id:'initial',serviceId:'gift',ruleType:'UNIT_PRICE',minQuantity:1,maxQuantity:null,exactQuantity:null,fixedPrice:null,unitPrice:offerSalePrice ?? 45,priority:10,active:true}]
+    expect(calculatePrice(item,rules,3)).toMatchObject({salePrice:total,cost:30,requiresManualPricing:false})
+    expect(calculatePrice(item,[],3).requiresManualPricing).toBe(true)
   })
 })

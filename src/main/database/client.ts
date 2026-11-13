@@ -29,6 +29,8 @@ import { seedCatalogInventorySync } from './catalog-inventory-sync.seed'
 import hierarchyMigration from './migrations/0016_catalog_hierarchy.sql?raw'
 import { upgradeProductHierarchy } from './product-hierarchy.upgrade'
 import { importProductSheet } from './product-sheet.import'
+import { upgradeProductPriceTiers } from './product-price-tiers.upgrade'
+import orderRoundingMigration from './migrations/0018_order_rounding.sql?raw'
 
 let sqlite: Database.Database | undefined
 
@@ -105,6 +107,11 @@ export function initializeDatabase() {
       database.exec(hierarchyMigration)
       upgradeProductHierarchy(database)
     })()
+  }
+  upgradeProductPriceTiers(sqlite)
+  if (Number(sqlite.prepare("SELECT value FROM app_settings WHERE key='database.schemaVersion'").pluck().get()) < 19) {
+    const database = sqlite
+    database.transaction(() => database.exec(orderRoundingMigration))()
   }
   return drizzle(sqlite, { schema })
 }

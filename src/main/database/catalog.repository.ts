@@ -92,6 +92,19 @@ export function saveService(input: ServiceInput): ServiceDto {
       const offer = input.offerSalePrice === undefined ? current.offerSalePrice : input.offerSalePrice
       if (offer !== null && regular === null) throw new Error('أدخل سعر البيع قبل سعر العرض.')
       if (input.itemType !== 'PRODUCT' && (regular !== null || offer !== null)) throw new Error('سعر العرض مخصص للمنتجات.')
+      if (input.itemType === 'PRODUCT') {
+        const rules = listPricingRules(id).filter((rule) => rule.active)
+        const simple = rules.length === 1 && ['UNIT_PRICE', 'MIN_QUANTITY'].includes(rules[0]!.ruleType) && rules[0]!.exactQuantity === null && (rules[0]!.minQuantity ?? 1) <= 1 && rules[0]!.maxQuantity === null && rules[0]!.fixedPrice === null && rules[0]!.unitPrice !== null ? rules[0] : undefined
+        if (rules.length && !simple) throw new Error('هذا المنتج له شرائح أسعار حسب الكمية. عدّل الشرائح من صفحة الأسعار.')
+        const effective = offer ?? regular
+        if (effective === null) {
+          if (simple) database.prepare('DELETE FROM pricing_rules WHERE id=?').run(simple.id)
+        } else if (simple) {
+          database.prepare('UPDATE pricing_rules SET sale_unit_price=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(effective,simple.id)
+        } else {
+          database.prepare("INSERT INTO pricing_rules (id,service_id,type,min_quantity,sale_unit_price,priority,active) VALUES (?,?,'UNIT_PRICE',1,?,10,1)").run(randomUUID(),id,effective)
+        }
+      }
       database.prepare('UPDATE services SET regular_sale_price=?,offer_sale_price=? WHERE id=?').run(regular,offer,id)
     }
   })()

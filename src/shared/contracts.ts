@@ -114,6 +114,7 @@ export interface CreateOrderResult {
   orderNumber: string
   customerName: string
   total: number
+  roundingDiscount: number
   totalCost: number
   profit: number
   profitMargin: number
@@ -133,6 +134,7 @@ export interface OrderSummaryDto {
   discountType: 'NONE' | 'FIXED' | 'PERCENT'
   discountValue: number
   discountAmount: number
+  roundingDiscount: number
   totalCost: number
   profit: number
   profitMargin: number

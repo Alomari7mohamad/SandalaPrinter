@@ -95,9 +95,9 @@ export const orderService = {
       orderNumber = `ORD-${String(lastSequence + 1).padStart(6, '0')}`
       const now = new Date().toISOString()
       database.prepare(`
-        INSERT INTO orders (id, order_number, customer_id, status, payment_status, subtotal, discount_type, discount_value, discount_amount, total, total_cost, profit, profit_margin, paid_amount, remaining_amount, customer_name_snapshot, customer_phone_snapshot, delivery_address, business_logo_data_url, notes, ordered_at)
-        VALUES (?, ?, 'cash-customer', 'NEW', 'UNPAID', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, orderNumber, totals.subtotal, parsed.data.discountType, discountValue, totals.discountAmount, totals.total, totals.totalCost, totals.profit, totals.profitMargin, totals.total, customerName, parsed.data.customerPhone, parsed.data.deliveryAddress, parsed.data.businessLogoDataUrl, parsed.data.notes, now)
+        INSERT INTO orders (id, order_number, customer_id, status, payment_status, subtotal, discount_type, discount_value, discount_amount, rounding_discount, total, total_cost, profit, profit_margin, paid_amount, remaining_amount, customer_name_snapshot, customer_phone_snapshot, delivery_address, business_logo_data_url, notes, ordered_at)
+        VALUES (?, ?, 'cash-customer', 'NEW', 'UNPAID', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, orderNumber, totals.subtotal, parsed.data.discountType, discountValue, totals.discountAmount, totals.roundingDiscount, totals.total, totals.totalCost, totals.profit, totals.profitMargin, totals.total, customerName, parsed.data.customerPhone, parsed.data.deliveryAddress, parsed.data.businessLogoDataUrl, parsed.data.notes, now)
 
       const insertItem = database.prepare(`
         INSERT INTO order_items (id, order_id, service_id, service_code_snapshot, service_name_snapshot, service_name_he_snapshot, category_snapshot, material_type_snapshot, size_snapshot, color_mode_snapshot, unit_snapshot, quantity, unit_cost_snapshot, total_cost, pricing_rule_id_snapshot, pricing_rule_snapshot, unit_sale_price, total_sale_price, profit, profit_margin, manual_price)
@@ -110,6 +110,6 @@ export const orderService = {
 
     })()
 
-    return { id, orderNumber, customerName, total: totals.total, totalCost: totals.totalCost, profit: totals.profit, profitMargin: totals.profitMargin, itemsCount: preparedItems.length }
+    return { id, orderNumber, customerName, total: totals.total, roundingDiscount: totals.roundingDiscount, totalCost: totals.totalCost, profit: totals.profit, profitMargin: totals.profitMargin, itemsCount: preparedItems.length }
   }
 }

@@ -3,7 +3,7 @@ import Decimal from 'decimal.js'
 export interface DraftFinancialItem { salePrice: number; cost: number }
 export type OrderDiscountType = 'NONE' | 'FIXED' | 'PERCENT'
 export interface DraftDiscount { type: OrderDiscountType; value: number }
-export interface DraftTotals { subtotal: number; discountAmount: number; total: number; totalCost: number; profit: number; profitMargin: number }
+export interface DraftTotals { subtotal: number; discountAmount: number; totalBeforeRounding: number; roundingDiscount: number; total: number; totalCost: number; profit: number; profitMargin: number }
 
 export function calculateDraftTotals(items: DraftFinancialItem[], discount: DraftDiscount = { type: 'NONE', value: 0 }): DraftTotals {
   const subtotal = items.reduce((sum, item) => sum.plus(item.salePrice), new Decimal(0))
@@ -13,8 +13,10 @@ export function calculateDraftTotals(items: DraftFinancialItem[], discount: Draf
     ? subtotal.times(Decimal.min(safeValue, 100)).dividedBy(100)
     : discount.type === 'FIXED' ? Decimal.min(safeValue.floor(), subtotal.times(0.1).floor()) : new Decimal(0)
   const discountAmount = Decimal.min(requestedDiscount, subtotal).toDecimalPlaces(4)
-  const total = subtotal.minus(discountAmount)
+  const totalBeforeRounding = subtotal.minus(discountAmount)
+  const total = totalBeforeRounding.floor()
+  const roundingDiscount = totalBeforeRounding.minus(total)
   const profit = total.minus(totalCost)
   const profitMargin = total.isZero() ? new Decimal(0) : profit.dividedBy(total).times(100)
-  return { subtotal: subtotal.toNumber(), discountAmount: discountAmount.toNumber(), total: total.toNumber(), totalCost: totalCost.toNumber(), profit: profit.toNumber(), profitMargin: profitMargin.toDecimalPlaces(4).toNumber() }
+  return { subtotal: subtotal.toNumber(), discountAmount: discountAmount.toNumber(), totalBeforeRounding: totalBeforeRounding.toNumber(), roundingDiscount: roundingDiscount.toNumber(), total: total.toNumber(), totalCost: totalCost.toNumber(), profit: profit.toNumber(), profitMargin: profitMargin.toDecimalPlaces(4).toNumber() }
 }

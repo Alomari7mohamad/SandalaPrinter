@@ -17,6 +17,7 @@ import { seedGhassanProducts } from './ghassan-products.seed'
 import { importProductSheet } from './product-sheet.import'
 import hierarchyMigration from './migrations/0016_catalog_hierarchy.sql?raw'
 import { upgradeProductHierarchy } from './product-hierarchy.upgrade'
+import { upgradeProductPriceTiers } from './product-price-tiers.upgrade'
 import { sheetProducts } from './product-sheet.data'
 import { calculatePrice } from '../../shared/pricing/pricing-engine'
 import type { PriceRule } from '../../shared/pricing/pricing-types'
@@ -44,6 +45,46 @@ beforeEach(() => {
 afterEach(() => database.close())
 
 describe('owner product price sheet', () => {
+  it('converts fixed product prices to editable tiers without changing past orders and never recreates deleted tiers', () => {
+    importProductSheet(database)
+    database.exec(hierarchyMigration)
+    upgradeProductHierarchy(database)
+    database.exec("UPDATE services SET offer_sale_price=0 WHERE id='ghassan-product-067'")
+    upgradeProductPriceTiers(database)
+    const query = `SELECT id,service_id serviceId,type ruleType,min_quantity minQuantity,max_quantity maxQuantity,exact_quantity exactQuantity,sale_price fixedPrice,sale_unit_price unitPrice,priority,active FROM pricing_rules WHERE service_id='ghassan-product-067'`
+    const rules = (database.prepare(query).all() as Array<Omit<PriceRule,'active'> & {active:number}>).map((row) => ({...row,active:Boolean(row.active)}))
+    const item = {id:'ghassan-product-067',code:'GIFT',nameAr:'هدية',active:true,costType:'PER_UNIT' as const,unitCost:20,costBatchSize:null,itemType:'PRODUCT' as const,regularSalePrice:45,offerSalePrice:0}
+    expect(calculatePrice(item,rules,3).salePrice).toBe(0)
+    expect(database.prepare("SELECT total FROM orders WHERE id='old-order'").pluck().get()).toBe(9)
+    expect(database.prepare("SELECT total_sale_price FROM order_items WHERE id='old-line'").pluck().get()).toBe(9)
+    database.exec("DELETE FROM pricing_rules WHERE service_id='ghassan-product-067'")
+    upgradeProductPriceTiers(database)
+    expect(database.prepare(query).all()).toHaveLength(0)
+    expect(calculatePrice(item,[],3).requiresManualPricing).toBe(true)
+    expect(database.pragma('foreign_key_check')).toEqual([])
+  })
+
+  it('keeps legacy quantity tiers when a product has no fixed-price override', () => {
+    importProductSheet(database)
+    database.exec(hierarchyMigration)
+    // No hierarchy backfill: null structured prices mean these rules already
+    // govern quantities and must be kept exactly as saved.
+    const before = database.prepare("SELECT * FROM pricing_rules WHERE service_id='ghassan-product-067'").all()
+    upgradeProductPriceTiers(database)
+    expect(database.prepare("SELECT * FROM pricing_rules WHERE service_id='ghassan-product-067'").all()).toEqual(before)
+  })
+
+  it('rolls back conversion and its checkpoint together if creating a tier fails', () => {
+    importProductSheet(database)
+    database.exec(hierarchyMigration)
+    upgradeProductHierarchy(database)
+    database.exec("DELETE FROM pricing_rules WHERE service_id='ghassan-product-067'")
+    const before = database.prepare('SELECT * FROM pricing_rules ORDER BY id').all()
+    database.exec("CREATE TRIGGER block_new_tier BEFORE INSERT ON pricing_rules WHEN NEW.id LIKE 'product-tier:%' BEGIN SELECT RAISE(ABORT,'simulated write failure'); END")
+    expect(() => upgradeProductPriceTiers(database)).toThrow('simulated write failure')
+    expect(database.prepare('SELECT * FROM pricing_rules ORDER BY id').all()).toEqual(before)
+    expect(database.prepare("SELECT value FROM app_settings WHERE key='database.schemaVersion'").pluck().get()).toBe('17')
+  })
   it('ينقل فئات الجدول تحت العناوين الرئيسية الخمسة ويحتفظ بتعديل سعر لاحق', () => {
     importProductSheet(database)
     database.exec("UPDATE pricing_rules SET sale_unit_price=39 WHERE id='sheet-price-001'")

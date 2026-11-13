@@ -642,3 +642,9 @@ select option { color: #18394a; background: #fff; font-weight: 650; }
 .dashboard-catalog-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-bottom: 22px; }
 .dashboard-catalog-summary .metric-card { flex: 0 1 340px; width: 100%; }
 .dashboard-catalog-summary p { margin: 0; color: #526a78; font-size: 13px; }
+.live-summary .rounding-discount-row { align-items: center; gap: 10px; color: #b7f0cc; }
+.live-summary .rounding-discount-row span { max-width: 65%; line-height: 1.6; }
+.rounding-discount-row b, .invoice-rounding-discount b { white-space: nowrap; }
+.order-detail-totals .rounding-discount-row { border: 1px solid #b6dbc5; background: #f0fbf4; }
+.invoice-summary .invoice-rounding-discount { font-weight: 900; border-bottom: 1px dashed #333; }
+.invoice-summary .invoice-rounding-discount span { min-width: 0; line-height: 1.5; }

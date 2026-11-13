@@ -21,5 +21,5 @@ export function editableUnitPriceRule(rules: PriceRule[]): PriceRule | undefined
   const active = rules.filter((rule) => rule.active)
   if (active.length !== 1) return undefined
   const rule = active[0]!
-  return rule.ruleType === 'UNIT_PRICE' && rule.unitPrice !== null && (rule.minQuantity === null || rule.minQuantity === 1) && rule.maxQuantity === null ? rule : undefined
+  return (rule.ruleType === 'UNIT_PRICE' || rule.ruleType === 'MIN_QUANTITY') && rule.fixedPrice === null && rule.unitPrice !== null && rule.exactQuantity === null && (rule.minQuantity === null || rule.minQuantity === 1) && rule.maxQuantity === null ? rule : undefined
 }
