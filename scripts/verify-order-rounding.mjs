@@ -45,21 +45,25 @@ try {
   return {main:main.id,product:product.id};
  })()`);
  await ev("location.hash='/new-order'");
- await wait("document.querySelector('select[name=catalogType]')");
- await select('select[name=catalogType]','PRODUCT');
- await wait('document.querySelector('+JSON.stringify('select[name=serviceCategory] option[value="'+f.main+'"]')+')');
- await select('select[name=serviceCategory]',f.main);
- await wait("document.querySelector('select[name=serviceProduct]').value==='"+f.product+"'");
- await wait("document.querySelector('.add-service-button').disabled===false");
- await click('.add-service-button');
- await wait("document.querySelector('.order-items-table')");
- await ev("[...document.querySelectorAll('.manager-discount-heading button')].find(b=>b.textContent.includes('20%')).click()");
- await wait("document.querySelector('.rounding-discount-row')?.innerText.includes('0.80')");
- const before=await ev("document.querySelector('.final-order-total b').textContent");
+ // صفحة الطلب بنظام الكاشير: فئة ← منتج ← سلة المشتريات
+ const tile=(selector,text)=>"[...document.querySelectorAll('"+selector+"')].find(t=>t.innerText.includes("+JSON.stringify(text)+"))";
+ await wait(tile('.pos-category-tile','طلبات تقريب تجريبية'));
+ await ev(tile('.pos-category-tile','طلبات تقريب تجريبية')+".click()");
+ await wait(tile('.pos-product-tile','منتج اختبار التقريب'));
+ await ev(tile('.pos-product-tile','منتج اختبار التقريب')+".click()");
+ await wait("document.querySelectorAll('.pos-line').length===1 && !document.querySelector('.pos-line.pending') && document.querySelector('.pos-pay-button').disabled===false");
+ await ev("[...document.querySelectorAll('.pos-discount-buttons button')].find(b=>b.textContent.includes('20%')).click()");
+ await wait("document.querySelector('.pos-rounding-row')?.innerText.includes('0.80')");
+ const before=await ev("document.querySelector('.pos-pay-button b').textContent");
  if(before!=='50 ₪')throw Error('Final draft total has decimals: '+before);
- if(!await ev("document.querySelector('.live-summary').innerText.includes('63.50') && document.querySelector('.live-summary').innerText.includes('12.70')"))throw Error('Original and manager discount decimals lost');
+ if(!await ev("document.querySelector('.pos-totals').innerText.includes('63.50') && document.querySelector('.pos-totals').innerText.includes('12.70')"))throw Error('Original and manager discount decimals lost');
+ // + و - يعيدان حساب السعر من محرك الأسعار
+ await ev("document.querySelector('.pos-stepper button[aria-label=\"زيادة\"]').click()");
+ await wait("document.querySelector('.pos-stepper input').value==='2' && !document.querySelector('.pos-line.pending') && document.querySelector('.pos-totals').innerText.includes('127')");
+ await ev("document.querySelector('.pos-stepper button[aria-label=\"إنقاص\"]').click()");
+ await wait("document.querySelector('.pos-stepper input').value==='1' && !document.querySelector('.pos-line.pending') && document.querySelector('.pos-pay-button b').textContent==='50 ₪'");
  await shot('new-order-rounding');
- await click('.save-order-button');await wait("document.querySelector('.success-alert')");
+ await click('.pos-pay-button');await wait("document.querySelector('.success-alert')");
  if(await ev("document.querySelector('.success-alert').innerText.includes('50.00')"))throw Error('Confirmation shows decimal total');
  const order=await ev("(async()=>{const rows=await window.desktopApi.orders.list({});return window.desktopApi.orders.get(rows[0].id)})()");
  if(order.total!==50||order.roundingDiscount!==0.8||order.discountAmount!==12.7||order.subtotal!==63.5)throw Error('Persisted totals differ from draft');
