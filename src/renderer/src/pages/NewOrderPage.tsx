@@ -25,7 +25,7 @@ interface StoredOrderDraft {
 interface QuantityPick { service: ServiceDto; options: Array<{ quantity: number; pricing: PricingResult | null }>; loading: boolean }
 
 const DRAFT_STORAGE_KEY = 'sandala:new-order-draft:v1'
-const STUDENT_DISCOUNT_PERCENT = 20
+const STUDENT_DISCOUNT_PERCENT = 15
 const TILE_TONES = ['blue', 'teal', 'violet', 'amber', 'rose', 'green', 'indigo', 'orange']
 const emptyStoredDraft: StoredOrderDraft = { items: [], customerName: '', customerPhone: '', deliveryAddress: '', businessLogoDataUrl: null, notes: '', customerPanelOpen: false, discountType: 'FIXED', discountValue: '' }
 

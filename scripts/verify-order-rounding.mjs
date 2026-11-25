@@ -52,8 +52,17 @@ try {
  await wait(tile('.pos-product-tile','منتج اختبار التقريب'));
  await ev(tile('.pos-product-tile','منتج اختبار التقريب')+".click()");
  await wait("document.querySelectorAll('.pos-line').length===1 && !document.querySelector('.pos-line.pending') && document.querySelector('.pos-pay-button').disabled===false");
- await ev("[...document.querySelectorAll('.pos-discount-buttons button')].find(b=>b.textContent.includes('20%')).click()");
- await wait("document.querySelector('.pos-rounding-row')?.innerText.includes('0.80')");
+ // زر الخصم الثابت 15%: 63.50 - 9.525 = 53.975 ← 53
+ await ev("[...document.querySelectorAll('.pos-discount-buttons button')].find(b=>b.textContent.includes('15%')).click()");
+ await wait("document.querySelector('.pos-pay-button b').textContent==='53 ₪' && document.querySelector('.pos-totals').innerText.includes('9.525')");
+ // خصم خاص 20% من نافذة الخصم: 63.50 - 12.70 - 0.80 = 50
+ await ev("[...document.querySelectorAll('.pos-discount-buttons button')].find(b=>b.textContent.includes('خصم خاص')).click()");
+ await wait("document.querySelector('.pos-discount-dialog')");
+ await ev("[...document.querySelectorAll('.pos-discount-dialog .discount-mode-switch button')].find(b=>b.textContent.includes('نسبة')).click()");
+ await ev("(()=>{const input=document.querySelector('.pos-discount-input input');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'20');input.dispatchEvent(new Event('input',{bubbles:true}));})()");
+ await wait("document.querySelector('.pos-discount-input input').value==='20'");
+ await ev("[...document.querySelectorAll('.pos-dialog-actions button')].find(b=>b.textContent.includes('تطبيق')).click()");
+ await wait("!document.querySelector('.pos-discount-dialog') && document.querySelector('.pos-rounding-row')?.innerText.includes('0.80')");
  const before=await ev("document.querySelector('.pos-pay-button b').textContent");
  if(before!=='50 ₪')throw Error('Final draft total has decimals: '+before);
  if(!await ev("document.querySelector('.pos-totals').innerText.includes('63.50') && document.querySelector('.pos-totals').innerText.includes('12.70')"))throw Error('Original and manager discount decimals lost');
